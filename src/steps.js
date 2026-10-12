@@ -107,3 +107,15 @@ export function verifySteps(pieces, steps, layout = plateLayout()) {
   });
   return { ok: errors.length === 0, errors, joinCount };
 }
+
+// ステップで組む範囲（お手本の小窓に枠で出す）：プレートのステップはプレート 1 枚、つなぎはパーツを囲む四角
+export function stepArea(step, pieces, layout = plateLayout()) {
+  if (step.kind === 'plate') {
+    const s = layout.plateSize;
+    return { x: (step.plate % layout.cols) * s, y: Math.floor(step.plate / layout.cols) * s, w: s, h: s };
+  }
+  const ps = step.pieces.map((i) => pieces[i]);
+  const x = Math.min(...ps.map((p) => p.x)), y = Math.min(...ps.map((p) => p.y));
+  const x2 = Math.max(...ps.map((p) => p.x + p.w)), y2 = Math.max(...ps.map((p) => p.y + p.h));
+  return { x, y, w: x2 - x, h: y2 - y };
+}

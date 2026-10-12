@@ -37,8 +37,11 @@
       <div class="progress"><div id="progress-bar"></div></div>
     </header>
 
-    <div id="board-wrap" class="board-wrap">
-      <canvas id="board" aria-label="盤面。光っている場所をタップしてパーツを置きます"></canvas>
+    <div class="board-area">
+      <div id="board-wrap" class="board-wrap">
+        <canvas id="board" aria-label="盤面。光っている場所をタップしてパーツを置きます"></canvas>
+      </div>
+      <button id="mini" type="button" class="mini" aria-label="完成図を大きく見る"><canvas id="mini-canvas"></canvas></button>
     </div>
 
     <footer class="hud-bottom">
@@ -53,11 +56,40 @@
         <button id="zoom-out" type="button" aria-label="縮小">－</button>
         <button id="zoom-in" type="button" aria-label="拡大">＋</button>
         <button id="mute" type="button" aria-label="消音">🔊</button>
+        <button id="help-open" type="button" aria-label="遊び方">？</button>
       </div>
       <p class="legal">Nouns は CC0 です。nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
     </footer>
 
     <div id="toast" class="toast" hidden></div>
+
+    <div id="sample" class="modal" hidden>
+      <div class="card sample-card" role="dialog" aria-label="お手本の絵">
+        <div class="sample-head">
+          <div class="segmented" role="tablist">
+            <button id="sample-completed" type="button" role="tab" aria-selected="true">完成図</button>
+            <button id="sample-original" type="button" role="tab" aria-selected="false">元絵</button>
+          </div>
+          <button id="sample-close" type="button" class="close" aria-label="閉じる">×</button>
+        </div>
+        <canvas id="sample-canvas"></canvas>
+        <p id="sample-note" class="muted"></p>
+      </div>
+    </div>
+
+    <div id="help" class="modal" hidden>
+      <div class="card" role="dialog" aria-label="遊び方">
+        <h2>遊び方</h2>
+        <ul class="help-list">
+          <li>光っているところをタップすると、ブロックがはまります</li>
+          <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
+          <li>面倒になったら「残りを自動で置く」でどんどん進められます</li>
+        </ul>
+        <div class="buttons">
+          <button id="help-close" type="button" class="primary">はじめる</button>
+        </div>
+      </div>
+    </div>
 
     <div id="resume" class="modal" hidden>
       <div class="card">

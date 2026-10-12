@@ -2,13 +2,16 @@
 import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { colorById, hexToRgb } from './palette.js';
 import { makePlan } from './plan.js';
-import { buildSteps } from './steps.js';
+import { buildSteps, stepArea } from './steps.js';
 import { Board } from './board.js';
 import { Play, loadSave } from './play.js';
 import * as sound from './sound.js';
+import { completedPixels, originalPixels, drawPixels } from './sample.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
+
+const HELP_KEY = 'naoblock:help-seen';
 
 const $ = (id) => document.getElementById(id);
 
@@ -82,6 +85,59 @@ function askResume(save, total) {
   });
 }
 
+// ---- 遊び方の案内 ----
+
+function helpSeen() {
+  try { return localStorage.getItem(HELP_KEY) === '1'; } catch { return false; }
+}
+
+function showHelp() {
+  return new Promise((resolve) => {
+    $('help').hidden = false;
+    $('help-close').onclick = () => {
+      $('help').hidden = true;
+      try { localStorage.setItem(HELP_KEY, '1'); } catch { /* 保存できなければ次回も出る */ }
+      resolve();
+    };
+  });
+}
+
+// ---- お手本の絵 ----
+
+const sample = { completed: null, original: null, frame: null, mode: 'completed' };
+
+function miniSize() {
+  return window.matchMedia('(min-width: 700px)').matches ? 100 : 88;
+}
+
+function drawMini() {
+  if (sample.completed) drawPixels($('mini-canvas'), sample.completed, miniSize(), sample.frame);
+}
+
+function drawSample() {
+  const size = Math.min(window.innerWidth - 72, window.innerHeight - 190, 480);
+  const original = sample.mode === 'original';
+  drawPixels($('sample-canvas'), original ? sample.original : sample.completed, size);
+  $('sample-completed').setAttribute('aria-selected', String(!original));
+  $('sample-original').setAttribute('aria-selected', String(original));
+  $('sample-note').textContent = original
+    ? '元絵：Nouns の本来の色と背景色'
+    : '完成図：ブロックの色に置き換えたもの（背景はプレートの色）';
+}
+
+function initSample() {
+  const modal = $('sample');
+  $('mini').onclick = () => { sample.mode = 'completed'; drawSample(); modal.hidden = false; };
+  $('sample-completed').onclick = () => { sample.mode = 'completed'; drawSample(); };
+  $('sample-original').onclick = () => { sample.mode = 'original'; drawSample(); };
+  $('sample-close').onclick = () => { modal.hidden = true; };
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
+  window.addEventListener('resize', () => {
+    drawMini();
+    if (!modal.hidden) drawSample();
+  });
+}
+
 function updateHud(info) {
   const { step } = info;
   $('step-label').textContent = info.done
@@ -112,7 +168,7 @@ function showFinish(id, result, play) {
 async function start(id) {
   show('loading');
   $('loading-text').textContent = `Noun ${id} を読み込み中…`;
-  let noun, partsData;
+  let noun, partsData, bgHex;
   try {
     const [seed, imageData, pd] = await Promise.all([
       fetchSeed(id),
@@ -121,6 +177,7 @@ async function start(id) {
     ]);
     noun = decodeNoun(seed, imageData);
     partsData = pd;
+    bgHex = imageData.bgcolors[seed.background] ?? imageData.bgcolors[0];
   } catch (e) {
     console.error(e);
     $('loading-text').textContent = `読み込めませんでした：${e.message}`;
@@ -133,7 +190,12 @@ async function start(id) {
   document.title = `Noun ${id} を組み立てる｜ナオブロック`;
   $('play-noun').textContent = `Noun ${id}`;
 
+  sample.completed = completedPixels(plan.board, PLATE_HEX);
+  sample.original = originalPixels(noun, bgHex, plan.layout.width, plan.layout.height);
+  initSample();
+
   show('play');
+  drawMini();
   let save = loadSave(id, plan.pieces);
   if (save && save.placed > 0 && !(await askResume(save, plan.pieces.length))) save = null;
 
@@ -151,13 +213,18 @@ async function start(id) {
     board,
     save,
     hooks: {
-      onChange: updateHud,
+      onChange: (info) => {
+        updateHud(info);
+        sample.frame = info.done ? null : stepArea(info.step, plan.pieces, plan.layout);
+        drawMini();
+      },
       onStepDone: (si) => toast(`ステップ ${si + 1} 完了！`),
       onComplete: (result) => showFinish(id, result, play),
     },
   });
   if (!save) play.restart(); // 「最初から」を選んだら保存も消す
   if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, play);
+  else if (!helpSeen()) showHelp();
 
   $('auto').onclick = () => (play.auto ? play.stopAuto() : play.startAuto());
   $('zoom-in').onclick = () => { board.zoomBy(1.5); board.ensureVisible(play.info().current, false); };
@@ -175,6 +242,7 @@ function init() {
   syncMute();
 
   $('loading-retry').onclick = () => location.reload();
+  $('help-open').onclick = () => showHelp();
 
   const id = new URLSearchParams(location.search).get('noun');
   if (id != null && /^\d+$/.test(id)) {
