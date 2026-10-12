@@ -3,6 +3,7 @@ import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { colorById, hexToRgb } from './palette.js';
 import { makePlan } from './plan.js';
 import { buildSteps, stepArea } from './steps.js';
+import { pieceCells } from './tiling.js';
 import { Board } from './board.js';
 import { Play, loadSave } from './play.js';
 import * as sound from './sound.js';
@@ -22,11 +23,14 @@ function show(view) {
   document.body.dataset.view = view;
 }
 
-const shapeLabel = (p) => `${Math.min(p.w, p.h)}×${Math.max(p.w, p.h)}`;
+const shapeLabel = (p) => p.shape.replace('x', '×');
 
 function drawPreview(canvas, piece) {
   const cell = 18;
-  const w = Math.max(piece.w, piece.h), h = Math.min(piece.w, piece.h); // 横長で見せる
+  // 長方形は横長で見せる。L 字は盤面と同じ向きで見せる
+  const flip = piece.shape !== '1x2L' && piece.h > piece.w;
+  const cells = pieceCells(piece).map(([x, y]) => (flip ? [y - piece.y, x - piece.x] : [x - piece.x, y - piece.y]));
+  const w = flip ? piece.h : piece.w, h = flip ? piece.w : piece.h;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = w * cell * dpr;
   canvas.height = h * cell * dpr;
@@ -37,23 +41,31 @@ function drawPreview(canvas, piece) {
   const hex = colorById(piece.color).hex;
   const [r, g, b] = hexToRgb(hex);
   const tint = (a) => `rgb(${[r, g, b].map((v) => Math.max(0, Math.min(255, v + a))).join(',')})`;
-  ctx.fillStyle = `#${hex}`;
-  ctx.fillRect(0, 0, w * cell, h * cell);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      ctx.beginPath();
-      ctx.arc((x + 0.5) * cell + 1, (y + 0.5) * cell + 1, cell * 0.31, 0, Math.PI * 2);
-      ctx.fillStyle = tint(-45);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc((x + 0.5) * cell, (y + 0.5) * cell, cell * 0.31, 0, Math.PI * 2);
-      ctx.fillStyle = tint(18);
-      ctx.fill();
-    }
+  for (const [x, y] of cells) {
+    ctx.fillStyle = `#${hex}`;
+    ctx.fillRect(x * cell, y * cell, cell, cell);
+    ctx.beginPath();
+    ctx.arc((x + 0.5) * cell + 1, (y + 0.5) * cell + 1, cell * 0.31, 0, Math.PI * 2);
+    ctx.fillStyle = tint(-45);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc((x + 0.5) * cell, (y + 0.5) * cell, cell * 0.31, 0, Math.PI * 2);
+    ctx.fillStyle = tint(18);
+    ctx.fill();
   }
+  // 輪郭
+  const keys = new Set(cells.map(([x, y]) => `${x},${y}`));
   ctx.strokeStyle = 'rgba(0,0,0,0.45)';
   ctx.lineWidth = 1;
-  ctx.strokeRect(0.5, 0.5, w * cell - 1, h * cell - 1);
+  ctx.beginPath();
+  for (const [x, y] of cells) {
+    const l = x * cell + 0.5, t = y * cell + 0.5, rr = (x + 1) * cell - 0.5, bb = (y + 1) * cell - 0.5;
+    if (!keys.has(`${x},${y - 1}`)) { ctx.moveTo(l, t); ctx.lineTo(rr, t); }
+    if (!keys.has(`${x},${y + 1}`)) { ctx.moveTo(l, bb); ctx.lineTo(rr, bb); }
+    if (!keys.has(`${x - 1},${y}`)) { ctx.moveTo(l, t); ctx.lineTo(l, bb); }
+    if (!keys.has(`${x + 1},${y}`)) { ctx.moveTo(rr, t); ctx.lineTo(rr, bb); }
+  }
+  ctx.stroke();
 }
 
 let toastTimer = 0;

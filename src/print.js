@@ -1,6 +1,7 @@
 // 印刷用の組立図（表紙・部品リスト・買い物リスト・組立手順）
 import { colorById, hexToRgb } from './palette.js';
-import { drawFinishedBoard } from './board.js';
+import { drawFinishedBoard, outlinePath } from './board.js';
+import { pieceCells, SHAPE_ORDER } from './tiling.js';
 
 const yen = (n) => `${n.toLocaleString('ja-JP')}円`;
 const shapeLabel = (s) => s.replace('x', '×');
@@ -138,32 +139,36 @@ function drawStep(ctx, { plan, plateHex, done, current, area, s }) {
   }
 
   const inArea = (p) => p.x < ox + w && p.x + p.w > ox && p.y < oy + h && p.y + p.h > oy;
-  const rect = (p) => [(p.x - ox) * s, (p.y - oy) * s, p.w * s, p.h * s];
+  // 図の中の座標にずらしたマス（L 字もマスごとに塗る）
+  const cellsIn = (p) => pieceCells(p).map(([x, y]) => [x - ox, y - oy]);
 
   // 置き済み：薄く
   for (const p of done) {
     if (!inArea(p)) continue;
+    const cells = cellsIn(p);
     const [r, g, b] = hexToRgb(colorById(p.color).hex);
     ctx.fillStyle = `rgba(${r},${g},${b},0.3)`;
-    ctx.fillRect(...rect(p));
+    for (const [x, y] of cells) ctx.fillRect(x * s, y * s, s, s);
     ctx.strokeStyle = 'rgba(0,0,0,0.25)';
     ctx.lineWidth = 1;
-    const [x, y, rw, rh] = rect(p);
-    ctx.strokeRect(x + 0.5, y + 0.5, rw - 1, rh - 1);
+    outlinePath(ctx, s, cells, 0.5);
+    ctx.stroke();
   }
 
   // このステップ：濃く＋太い黒枠（白黒でも分かるように、内側に白い線も）
   const thick = Math.max(3, Math.round(s * 0.16));
   for (const p of current) {
-    const [x, y, rw, rh] = rect(p);
+    const cells = cellsIn(p);
     ctx.fillStyle = `#${colorById(p.color).hex}`;
-    ctx.fillRect(x, y, rw, rh);
+    for (const [x, y] of cells) ctx.fillRect(x * s, y * s, s, s);
     ctx.strokeStyle = '#000';
     ctx.lineWidth = thick;
-    ctx.strokeRect(x + thick / 2, y + thick / 2, rw - thick, rh - thick);
+    outlinePath(ctx, s, cells, thick / 2);
+    ctx.stroke();
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
-    ctx.strokeRect(x + thick + 0.5, y + thick + 0.5, rw - thick * 2 - 1, rh - thick * 2 - 1);
+    outlinePath(ctx, s, cells, thick + 0.5);
+    ctx.stroke();
   }
 
   plateSeams(ctx, plan.layout, s, ox, oy, w, h);
@@ -175,9 +180,8 @@ function stepUsage(step, pieces) {
     const k = pieces[i].shape;
     counts.set(k, (counts.get(k) || 0) + 1);
   }
-  const order = ['2x8', '2x4', '2x3', '1x6', '2x2', '1x4', '1x3', '1x2', '1x1'];
   return [...counts.entries()]
-    .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+    .sort((a, b) => SHAPE_ORDER.indexOf(a[0]) - SHAPE_ORDER.indexOf(b[0]))
     .map(([shape, n]) => `${shapeLabel(shape)} × ${n}`)
     .join('、');
 }

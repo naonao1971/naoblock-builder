@@ -3,7 +3,7 @@
 // 継ぎ目をまたぐパーツは、またぐプレートのうち最後のプレートのステップのあとの「つなぎ」ステップで置く。
 // ステップ内は上の行から、同じ行なら左から（パーツの左上のマスで並べる）。
 import { BLOCK_COLORS } from './palette.js';
-import { plateLayout } from './tiling.js';
+import { plateLayout, pieceCells } from './tiling.js';
 
 const PLATE_NAMES_2x2 = ['左上', '右上', '左下', '右下'];
 
@@ -15,11 +15,8 @@ export function plateName(index, layout = plateLayout()) {
 // パーツが載っているプレートの番号（左上→右上→左下→右下の順の番号）を小さい順に
 export function platesOf(piece, layout = plateLayout()) {
   const s = layout.plateSize;
-  const c0 = Math.floor(piece.x / s), c1 = Math.floor((piece.x + piece.w - 1) / s);
-  const r0 = Math.floor(piece.y / s), r1 = Math.floor((piece.y + piece.h - 1) / s);
-  const out = [];
-  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) out.push(r * layout.cols + c);
-  return out;
+  const set = new Set(pieceCells(piece).map(([x, y]) => Math.floor(y / s) * layout.cols + Math.floor(x / s)));
+  return [...set].sort((a, b) => a - b);
 }
 
 const byPosition = (pieces) => (a, b) => pieces[a].y - pieces[b].y || pieces[a].x - pieces[b].x;

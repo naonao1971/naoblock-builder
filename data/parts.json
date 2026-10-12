@@ -5,6 +5,7 @@
     "1x1": { "perBag": 80, "price": 220 },
     "1x2": { "perBag": 70, "price": 220 },
     "1x3": { "perBag": 50, "price": 220 },
+    "1x2L": { "perBag": 30, "price": 220 },
     "1x4": { "perBag": 40, "price": 220 },
     "1x6": { "perBag": 30, "price": 220 },
     "2x2": { "perBag": 60, "price": 220 },
