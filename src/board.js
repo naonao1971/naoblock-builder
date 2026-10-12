@@ -26,8 +26,8 @@ function drawStud(ctx, s, x, y, hex, alpha = 1) {
   ctx.fill();
 }
 
-// パーツの輪郭（覆っているマスの外側の辺）
-function outlinePath(ctx, s, cells, inset) {
+// パーツの輪郭（覆っているマスの外側の辺）。inset だけ内側に寄せる
+export function outlinePath(ctx, s, cells, inset) {
   const keys = new Set(cells.map(([x, y]) => `${x},${y}`));
   const has = (x, y) => keys.has(`${x},${y}`);
   ctx.beginPath();
