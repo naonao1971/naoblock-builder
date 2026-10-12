@@ -1,5 +1,6 @@
 // 盤面の描画・ズーム・タップ判定
 import { colorById, hexToRgb } from './palette.js';
+import { pieceCells } from './tiling.js';
 
 const DROP_MS = 170;
 const SHAKE_MS = 320;
@@ -25,19 +26,32 @@ function drawStud(ctx, s, x, y, hex, alpha = 1) {
   ctx.fill();
 }
 
+// パーツの輪郭（覆っているマスの外側の辺）
+function outlinePath(ctx, s, cells, inset) {
+  const keys = new Set(cells.map(([x, y]) => `${x},${y}`));
+  const has = (x, y) => keys.has(`${x},${y}`);
+  ctx.beginPath();
+  for (const [x, y] of cells) {
+    const l = x * s, t = y * s, r = (x + 1) * s, b = (y + 1) * s;
+    if (!has(x, y - 1)) { ctx.moveTo(l, t + inset); ctx.lineTo(r, t + inset); }
+    if (!has(x, y + 1)) { ctx.moveTo(l, b - inset); ctx.lineTo(r, b - inset); }
+    if (!has(x - 1, y)) { ctx.moveTo(l + inset, t); ctx.lineTo(l + inset, b); }
+    if (!has(x + 1, y)) { ctx.moveTo(r - inset, t); ctx.lineTo(r - inset, b); }
+  }
+}
+
 function drawPiece(ctx, s, p, { alpha = 1, studs = true, dx = 0, dy = 0 } = {}) {
   const hex = colorById(p.color).hex;
+  const cells = pieceCells(p);
   ctx.save();
   ctx.translate(dx, dy);
   ctx.fillStyle = rgb(hex, 0, alpha);
-  ctx.fillRect(p.x * s, p.y * s, p.w * s, p.h * s);
-  if (studs) {
-    for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) drawStud(ctx, s, i, j, hex, alpha);
-  }
+  for (const [x, y] of cells) ctx.fillRect(x * s, y * s, s, s);
+  if (studs) for (const [x, y] of cells) drawStud(ctx, s, x, y, hex, alpha);
   ctx.strokeStyle = `rgba(0,0,0,${0.45 * alpha})`;
   ctx.lineWidth = Math.max(1, s * 0.06);
-  const lw = ctx.lineWidth / 2;
-  ctx.strokeRect(p.x * s + lw, p.y * s + lw, p.w * s - lw * 2, p.h * s - lw * 2);
+  outlinePath(ctx, s, cells, ctx.lineWidth / 2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -255,7 +269,7 @@ export class Board {
       const e = t * t; // だんだん速く
       const p = this.pieces[d.index];
       ctx.fillStyle = `rgba(0,0,0,${0.25 * e})`;
-      ctx.fillRect(p.x * s, p.y * s, p.w * s, p.h * s);
+      for (const [x, y] of pieceCells(p)) ctx.fillRect(x * s, y * s, s, s);
       this.drawPiece(ctx, p, { dy: -(1 - e) * s * 1.6, alpha: 0.6 + 0.4 * e });
       animating = true;
     }

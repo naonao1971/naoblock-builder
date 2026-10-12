@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchSeed, fetchImageData, decodeNoun } from '../src/nouns.js';
 import { BLOCK_COLORS, colorById } from '../src/palette.js';
 import { makePlan } from '../src/plan.js';
+import { tile, pieceCells } from '../src/tiling.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
 
 const args = process.argv.slice(2);
@@ -60,13 +61,17 @@ console.log('');
 console.log('## 検算');
 const v = plan.check;
 const sumCount = plan.parts.reduce((s, p) => s + p.count, 0);
-const sumCells = plan.pieces.reduce((s, p) => s + p.w * p.h, 0);
+const sumCells = plan.pieces.reduce((s, p) => s + pieceCells(p).length, 0);
 const same = JSON.stringify(plan.pieces) === JSON.stringify(again.pieces);
-console.log(`  ${mark(v.ok)}全マスがちょうど 1 回／空きに置いていない／中が同じ色／形は 9 種だけ${v.ok ? '' : `（${v.errors.length} 件）`}`);
+console.log(`  ${mark(v.ok)}全マスがちょうど 1 回／空きに置いていない／中が同じ色／形は 10 種だけ（長方形 9 種＋L 字）${v.ok ? '' : `（${v.errors.length} 件）`}`);
 for (const e of v.errors.slice(0, 20)) console.log(`      ${e}`);
 console.log(`  ${mark(sumCount === plan.pieces.length)}部品リストの合計 ${sumCount} 個 ＝ パーツ ${plan.pieces.length} 個`);
 console.log(`  ${mark(sumCells === v.filledCells)}覆ったマス ${sumCells} ＝ 色の付いたマス ${v.filledCells}`);
 console.log(`  ${mark(same)}同じ入力で 2 回作って同じ結果`);
+const withoutL = tile(plan.board, plan.layout, { useL: false });
+const count = (ps, shape) => ps.filter((p) => p.shape === shape).length;
+const singlesNow = count(plan.pieces, '1x1'), singlesBefore = count(withoutL, '1x1');
+console.log(`  ${mark(singlesNow <= singlesBefore)}L 字で 1×1 が減る：L 字なし ${singlesBefore} 個 → あり ${singlesNow} 個（L 字 ${count(plan.pieces, '1x2L')} 個、パーツ全体 ${withoutL.length} → ${plan.pieces.length} 個）`);
 console.log('');
 
 console.log('## 組立順');
@@ -77,9 +82,9 @@ const sameSteps = JSON.stringify(steps) === JSON.stringify(stepsAgain);
 console.log(`  ${mark(sv.ok)}全パーツがちょうど 1 回ずつどこかのステップに入っている／継ぎ目をまたぐパーツ ${sv.joinCount} 個は両方のプレートの後${sv.ok ? '' : `（${sv.errors.length} 件）`}`);
 for (const e of sv.errors.slice(0, 20)) console.log(`      ${e}`);
 console.log(`  ${mark(sameSteps)}同じ入力で 2 回作って組立順も同じ`);
-console.log('  （各パーツは 幅×高さ@(左上のマスの x,y)）');
+console.log('  （各パーツは 幅×高さ@(左上のマスの x,y)。L 字は L(欠けている角: tl 左上・tr 右上・bl 左下・br 右下)@(2×2 の左上の x,y)）');
 steps.forEach((st, i) => {
-  const list = st.pieces.map((n) => { const p = plan.pieces[n]; return `${p.w}×${p.h}@(${p.x},${p.y})`; }).join(' ');
+  const list = st.pieces.map((n) => { const p = plan.pieces[n]; return p.shape === '1x2L' ? `L(欠け${p.missing})@(${p.x},${p.y})` : `${p.w}×${p.h}@(${p.x},${p.y})`; }).join(' ');
   console.log(`  ステップ ${String(i + 1).padStart(2)}: ${st.label}・${name(st.color)}（${st.pieces.length} 個） ${list}`);
 });
 console.log('');
@@ -103,5 +108,5 @@ for (const l of sh.lines) {
 console.log(`  ${sh.plate.name} × ${sh.plate.count} 枚  ${yen(sh.plate.price)}`);
 console.log(`  合計: パーツ ${sh.bags} 袋 ${yen(sh.partsTotal)} ＋ プレート ${yen(sh.plate.price)} ＝ ${yen(sh.total)}`);
 
-const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps;
+const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps && singlesNow <= singlesBefore;
 process.exit(allOk ? 0 : 1);

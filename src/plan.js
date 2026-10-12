@@ -1,6 +1,6 @@
 // 盤面・部品リスト・買い物リストの組み立て（純粋関数）
 import { BLOCK_COLORS, buildColorMap } from './palette.js';
-import { SHAPES, plateLayout, tile, verifyTiling, seamReport } from './tiling.js';
+import { SHAPE_ORDER, plateLayout, tile, verifyTiling, seamReport } from './tiling.js';
 
 // 32×32 に出てくる元の色（多い順、同数なら色コード順）
 export function sourceColors(noun) {
@@ -30,7 +30,7 @@ export function partsList(pieces, colors = BLOCK_COLORS) {
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   const colorOrder = (id) => colors.findIndex((c) => c.id === id);
-  const shapeOrder = (s) => SHAPES.findIndex((x) => x.name === s);
+  const shapeOrder = (s) => SHAPE_ORDER.indexOf(s);
   return [...counts.entries()]
     .map(([key, count]) => {
       const [color, shape] = key.split('|');

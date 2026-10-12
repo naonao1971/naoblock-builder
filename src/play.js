@@ -9,7 +9,7 @@ const storageKey = (id) => `naoblock:v1:noun:${id}`;
 
 // パーツ割りが変わったら古い保存は使わない
 function signature(pieces) {
-  const s = JSON.stringify(pieces.map((p) => [p.x, p.y, p.w, p.h, p.color]));
+  const s = JSON.stringify(pieces.map((p) => [p.x, p.y, p.w, p.h, p.color, p.missing ?? '']));
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return (h >>> 0).toString(16);
