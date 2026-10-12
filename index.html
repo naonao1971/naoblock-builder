@@ -6,6 +6,7 @@
   <title>ナオブロック（naoblock）</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="print.css" media="print">
   <script type="module" src="src/main.js"></script>
 </head>
 <body data-view="start">
@@ -117,6 +118,10 @@
     <details class="real">
       <summary>実物で組むなら</summary>
       <div id="real-parts"></div>
+      <div class="print-action">
+        <button id="print-guide" type="button" class="primary">組立図を印刷</button>
+        <p class="note">表紙・部品リスト・買い物リスト・組立手順を A4 縦で印刷します（PDF 保存も印刷の画面から）。</p>
+      </div>
     </details>
 
     <div class="finish-actions">
@@ -129,5 +134,8 @@
       <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
     </footer>
   </section>
+
+  <!-- 印刷用の組立図（画面には出さない。「組立図を印刷」で中身を作る） -->
+  <div id="print-root" class="print-root"></div>
 </body>
 </html>
