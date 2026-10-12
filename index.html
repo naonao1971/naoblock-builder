@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ナオブロック（naoblock）</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body data-view="start">
+  <section id="view-start" class="page">
+    <h1>ナオブロック <small>naoblock</small></h1>
+    <p class="lead">Nouns の番号を入れると、40×40 の平面ドット絵を、説明書どおりに 1 個ずつ組み立てて遊べます。</p>
+    <form class="start-form" method="get" action="">
+      <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
+      <button type="submit" class="primary">組み立てる</button>
+    </form>
+    <footer class="legal">
+      <p>Nouns は CC0 です。</p>
+      <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
+    </footer>
+  </section>
+
+  <section id="view-loading" class="page" hidden>
+    <p id="loading-text">読み込み中…</p>
+    <p><button id="loading-retry" type="button" hidden>もう一度</button> <a href="./">別の Noun で遊ぶ</a></p>
+  </section>
+
+  <section id="view-play" hidden>
+    <header class="hud-top">
+      <div class="hud-row">
+        <a class="brand" href="./" title="別の Noun で遊ぶ">naoblock</a>
+        <span id="play-noun"></span>
+        <span id="progress-text" class="muted"></span>
+      </div>
+      <div id="step-label" class="step-label"></div>
+      <div class="progress"><div id="progress-bar"></div></div>
+    </header>
+
+    <div class="board-area">
+      <div id="board-wrap" class="board-wrap">
+        <canvas id="board" aria-label="盤面。光っている場所をタップしてパーツを置きます"></canvas>
+      </div>
+      <button id="mini" type="button" class="mini" aria-label="完成図を大きく見る"><canvas id="mini-canvas"></canvas></button>
+    </div>
+
+    <footer class="hud-bottom">
+      <div id="next" class="next">
+        <span class="next-title">次のパーツ</span>
+        <canvas id="next-canvas" aria-hidden="true"></canvas>
+        <span id="next-label" class="next-label"></span>
+        <span id="next-remaining" class="muted"></span>
+      </div>
+      <div class="buttons">
+        <button id="auto" type="button" class="primary">残りを自動で置く</button>
+        <button id="zoom-out" type="button" aria-label="縮小">－</button>
+        <button id="zoom-in" type="button" aria-label="拡大">＋</button>
+        <button id="mute" type="button" aria-label="消音">🔊</button>
+        <button id="help-open" type="button" aria-label="遊び方">？</button>
+      </div>
+      <p class="legal">Nouns は CC0 です。nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
+    </footer>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <div id="sample" class="modal" hidden>
+      <div class="card sample-card" role="dialog" aria-label="お手本の絵">
+        <div class="sample-head">
+          <div class="segmented" role="tablist">
+            <button id="sample-completed" type="button" role="tab" aria-selected="true">完成図</button>
+            <button id="sample-original" type="button" role="tab" aria-selected="false">元絵</button>
+          </div>
+          <button id="sample-close" type="button" class="close" aria-label="閉じる">×</button>
+        </div>
+        <canvas id="sample-canvas"></canvas>
+        <p id="sample-note" class="muted"></p>
+      </div>
+    </div>
+
+    <div id="help" class="modal" hidden>
+      <div class="card" role="dialog" aria-label="遊び方">
+        <h2>遊び方</h2>
+        <ul class="help-list">
+          <li>光っているところをタップすると、ブロックがはまります</li>
+          <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
+          <li>面倒になったら「残りを自動で置く」でどんどん進められます</li>
+        </ul>
+        <div class="buttons">
+          <button id="help-close" type="button" class="primary">はじめる</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="resume" class="modal" hidden>
+      <div class="card">
+        <p id="resume-text"></p>
+        <div class="buttons">
+          <button id="resume-continue" type="button" class="primary">続きから</button>
+          <button id="resume-restart" type="button">最初から</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="finish" class="modal" hidden>
+      <div class="card">
+        <h2 id="finish-title"></h2>
+        <p id="finish-stats"></p>
+        <p class="muted">完成画面（画像の保存・シェア・部品リスト）は次の PR で作ります。</p>
+        <div class="buttons">
+          <button id="finish-again" type="button" class="primary">もう一度</button>
+          <a class="button" href="./">別の Noun で遊ぶ</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
