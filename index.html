@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ナオブロック（naoblock）</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="print.css" media="print">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <header>
+    <h1>ナオブロック <small>naoblock</small></h1>
+    <p class="lead">Nouns の番号から、20×20 プレート 4 枚（40×40）に並べる平面ドット絵の組立図をつくります。</p>
+    <form id="noun-form" class="controls">
+      <label>Noun の番号 <input id="noun-id" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
+      <button type="submit">つくる</button>
+      <label>プレートの色 <select id="plate-color"></select></label>
+    </form>
+  </header>
+
+  <main>
+    <p id="status" hidden></p>
+    <div id="result" hidden>
+      <section id="summary"></section>
+      <section id="seams" hidden></section>
+      <section>
+        <h3>完成図</h3>
+        <div class="board-wrap"><canvas id="board" aria-label="完成図"></canvas></div>
+        <p class="note">点線はプレートの境目。ブロックのない所はプレートの色のまま。</p>
+      </section>
+      <section>
+        <h3>元の色 → ブロックの色</h3>
+        <p class="note">いちばん近い色を自動で選んでいます。右の欄で変えられます（ブロックの色見本は仮の値）。</p>
+        <div id="colormap"></div>
+      </section>
+      <section>
+        <h3>部品リスト</h3>
+        <div id="parts"></div>
+      </section>
+      <section>
+        <h3>買い物リスト</h3>
+        <div id="shopping"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Nouns は CC0 です。</p>
+    <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
+  </footer>
+</body>
+</html>

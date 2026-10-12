@@ -1,0 +1,7 @@
+/* 印刷用（ページ割り・組立手順は 2 回目の PR で作り込む） */
+@page { size: A4 portrait; margin: 12mm; }
+
+body { background: #fff; }
+.controls, .lead, #status { display: none !important; }
+#board { box-shadow: none; max-width: 150mm; }
+section { break-inside: avoid; }

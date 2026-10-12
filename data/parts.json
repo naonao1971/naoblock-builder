@@ -1,0 +1,16 @@
+{
+  "note": "値段は税込（円）。入数と値段は Kawada Base のパラ売り（単色部品）",
+  "shopUrl": "https://kawadabase.com/shop/product_categories/single-parts",
+  "parts": {
+    "1x1": { "perBag": 80, "price": 220 },
+    "1x2": { "perBag": 70, "price": 220 },
+    "1x3": { "perBag": 50, "price": 220 },
+    "1x4": { "perBag": 40, "price": 220 },
+    "1x6": { "perBag": 30, "price": 220 },
+    "2x2": { "perBag": 60, "price": 220 },
+    "2x3": { "perBag": 50, "price": 220 },
+    "2x4": { "perBag": 40, "price": 220 },
+    "2x8": { "perBag": 20, "price": 220 }
+  },
+  "plate": { "name": "20×20 プレート", "size": 20, "price": 220, "note": "色は未確認" }
+}
