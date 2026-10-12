@@ -86,10 +86,18 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 
 .hud-main { display: flex; align-items: center; gap: 10px; }
 .hud-info { flex: 1; min-width: 0; }
-.hud-row { display: flex; gap: 10px; align-items: baseline; font-size: 0.85rem; }
-.hud-row #progress-text { margin-left: auto; }
+.hud-row { display: flex; gap: 8px; align-items: baseline; font-size: 0.85rem; white-space: nowrap; min-width: 0; }
+.mode-badge { font-size: 0.7rem; padding: 0 6px; border-radius: 999px; background: var(--line); }
+.mode-badge.ta { background: #c62828; color: #fff; }
+.mode-badge:empty { display: none; }
+.progress-row { display: flex; align-items: center; gap: 8px; }
+.progress-row .progress { flex: 1; }
+#progress-text { flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .brand { color: var(--accent); font-weight: bold; text-decoration: none; }
-.step-label { font-weight: bold; font-size: 1rem; margin: 2px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step-row { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 4px; min-width: 0; }
+.step-label { font-weight: bold; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.timer { margin-left: auto; flex: none; font-weight: bold; font-variant-numeric: tabular-nums; color: var(--fg); }
+.timer.low { color: #c62828; }
 .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
 #progress-bar { height: 100%; width: 0; background: var(--accent); transition: width 0.15s; }
 
@@ -322,3 +330,22 @@ tfoot td { font-weight: bold; border-bottom: 0; }
 .print-action { margin-top: 16px; }
 .print-action button { width: 100%; }
 .print-root { display: none; }
+
+/* モードをえらぶ */
+.mode-card h2 { margin: 0 0 12px; }
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  margin: 8px 0;
+  border-radius: 14px;
+}
+.mode-btn strong { font-size: 1.2rem; }
+.mode-btn span { font-size: 0.85rem; opacity: 0.9; }
+.mode-best { font-weight: bold; }
+.tools .hint { font-size: 1.1rem; }
+.dpad .pad:disabled { opacity: 0.3; }

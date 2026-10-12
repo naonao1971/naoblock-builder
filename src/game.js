@@ -149,6 +149,39 @@ export class Game {
     return this.isCorrect() ? 'placed' : 'moved';
   }
 
+  // ---- 落ちてくる型（ステージの型が 'fall' のとき） ----
+
+  get falling() { return !this.done && this.stage.type === 'fall'; }
+
+  // 持った直後の場所（ステージの上の端）へ戻す。向きはそのまま
+  backToTop() {
+    if (!this.held) return;
+    this.held.x = this.home.x;
+    this.held.y = this.home.y;
+    this.clamp();
+  }
+
+  // 1 マス落とす。ステージの下の端まで落ちてもはまらなかったら、上からやり直し
+  // 戻り値：'moved' | 'reset'
+  fall() {
+    if (!this.held) return 'moved';
+    const { h } = sizeOf(this.held.shape);
+    const area = this.stageArea();
+    if (this.held.y + h >= area.y + area.h) {
+      this.backToTop();
+      return 'reset';
+    }
+    this.held.y += 1;
+    return 'moved';
+  }
+
+  // 今のステージを最初からやり直す（タイムアタックの時間切れ）
+  restartStage() {
+    if (this.done) return;
+    this.blockIndex = 0;
+    this.spawn();
+  }
+
   // 「はめる」：正解ならはまって次へ。違えば元の場所へ戻る（間違いは数えない）
   // 戻り値：{ ok, stageCleared, done }
   place() {

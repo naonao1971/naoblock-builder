@@ -35,16 +35,22 @@
           <div class="hud-row">
             <a class="brand" href="./" title="別の Noun で遊ぶ">naoblock</a>
             <span id="play-noun"></span>
-            <span id="progress-text" class="muted"></span>
+            <span id="mode-badge" class="mode-badge"></span>
           </div>
-          <div id="step-label" class="step-label"></div>
+          <div class="step-row">
+            <span id="step-label" class="step-label"></span>
+            <span id="timer" class="timer" hidden></span>
+          </div>
         </div>
         <div class="next-box" aria-label="次のブロック">
           <span class="next-title">つぎ</span>
           <canvas id="next-canvas"></canvas>
         </div>
       </div>
-      <div class="progress"><div id="progress-bar"></div></div>
+      <div class="progress-row">
+        <div class="progress"><div id="progress-bar"></div></div>
+        <span id="progress-text" class="muted"></span>
+      </div>
     </header>
 
     <div class="board-area">
@@ -56,7 +62,7 @@
 
     <footer class="controller">
       <div class="dpad" role="group" aria-label="動かす">
-        <button type="button" class="pad up" data-dx="0" data-dy="-1" aria-label="上へ">▲</button>
+        <button type="button" id="pad-up" class="pad up" data-dx="0" data-dy="-1" aria-label="上へ">▲</button>
         <button type="button" class="pad left" data-dx="-1" data-dy="0" aria-label="左へ">◀</button>
         <button type="button" class="pad right" data-dx="1" data-dy="0" aria-label="右へ">▶</button>
         <button type="button" class="pad down" data-dx="0" data-dy="1" aria-label="下へ">▼</button>
@@ -64,6 +70,7 @@
       <div class="tools">
         <button id="mute" type="button" class="small" aria-label="消音">🔊</button>
         <button id="help-open" type="button" class="small" aria-label="遊び方">？</button>
+        <button id="hint" type="button" class="small hint" aria-label="ヒント（+5秒）" hidden>💡</button>
       </div>
       <div class="actions">
         <div class="rotates">
@@ -91,13 +98,30 @@
       </div>
     </div>
 
+    <div id="mode" class="modal" hidden>
+      <div class="card mode-card" role="dialog" aria-label="モードをえらぶ">
+        <h2>モードをえらぶ</h2>
+        <button id="mode-practice" type="button" class="mode-btn primary">
+          <strong>れんしゅう</strong>
+          <span>時間制限なし。5 秒迷うと、置く場所が光ります</span>
+        </button>
+        <button id="mode-timeattack" type="button" class="mode-btn">
+          <strong>タイムアタック</strong>
+          <span>ステージごとに制限時間。💡 ヒントは 1 回 +5 秒</span>
+          <span id="mode-best" class="mode-best"></span>
+        </button>
+      </div>
+    </div>
+
     <div id="help" class="modal" hidden>
       <div class="card" role="dialog" aria-label="遊び方">
         <h2>遊び方</h2>
         <ul class="help-list">
           <li>十字キー（PC は矢印キー）でブロックを動かし、回転ボタン（Z / X）で向きを合わせて、「はめる」（スペース）で置きます</li>
           <li>盤面のマスをタップすると、ブロックがそこへ飛びます。持っているブロックをタップすると回ります</li>
-          <li>正しい場所に重なると、ブロックの縁が光ります。5 秒迷うと、置く場所が光ります</li>
+          <li>正しい場所に重なると、ブロックの縁が光ります。れんしゅうでは、5 秒迷うと置く場所が光ります</li>
+          <li>ステージ 3 からはブロックが落ちてきます。正しい場所と向きに重なると、そのままはまります（▼ で速く落とせます）</li>
+          <li>タイムアタックは、ステージごとに制限時間があります。時間切れになると、そのステージを最初からやり直します</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
         </ul>
         <div class="buttons">
