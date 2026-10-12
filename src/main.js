@@ -1,11 +1,11 @@
-// 画面の組み立て（取得・画面の切り替え・ボタン）
+// 画面の組み立て（取得・画面の切り替え・ボタン・キーボード）
 import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
-import { colorById, hexToRgb } from './palette.js';
 import { makePlan } from './plan.js';
-import { buildSteps, stepArea } from './steps.js';
-import { pieceCells } from './tiling.js';
-import { Board } from './board.js';
-import { Play, loadSave } from './play.js';
+import { buildSteps } from './steps.js';
+import { buildBlocks } from './pieces.js';
+import { buildStages } from './stages.js';
+import { Game } from './game.js';
+import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts } from './finish.js';
@@ -14,7 +14,10 @@ import { buildPrintout } from './print.js';
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
 
-const HELP_KEY = 'naoblock:help-seen';
+const HELP_KEY = 'naoblock:help-seen-game';
+const MODE = 'practice'; // れんしゅう（タイムアタックは次の PR）
+const HINT_MS = 5000; // れんしゅう：5 秒迷ったら正解の場所が光る
+const CLEAR_PAUSE_MS = 1300;
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,74 +26,64 @@ function show(view) {
   document.body.dataset.view = view;
 }
 
-const shapeLabel = (p) => p.shape.replace('x', '×');
-
-function drawPreview(canvas, piece) {
-  const cell = 18;
-  // 長方形は横長で見せる。L 字は盤面と同じ向きで見せる
-  const flip = piece.shape !== '1x2L' && piece.h > piece.w;
-  const cells = pieceCells(piece).map(([x, y]) => (flip ? [y - piece.y, x - piece.x] : [x - piece.x, y - piece.y]));
-  const w = flip ? piece.h : piece.w, h = flip ? piece.w : piece.h;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = w * cell * dpr;
-  canvas.height = h * cell * dpr;
-  canvas.style.width = `${w * cell}px`;
-  canvas.style.height = `${h * cell}px`;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const hex = colorById(piece.color).hex;
-  const [r, g, b] = hexToRgb(hex);
-  const tint = (a) => `rgb(${[r, g, b].map((v) => Math.max(0, Math.min(255, v + a))).join(',')})`;
-  for (const [x, y] of cells) {
-    ctx.fillStyle = `#${hex}`;
-    ctx.fillRect(x * cell, y * cell, cell, cell);
-    ctx.beginPath();
-    ctx.arc((x + 0.5) * cell + 1, (y + 0.5) * cell + 1, cell * 0.31, 0, Math.PI * 2);
-    ctx.fillStyle = tint(-45);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc((x + 0.5) * cell, (y + 0.5) * cell, cell * 0.31, 0, Math.PI * 2);
-    ctx.fillStyle = tint(18);
-    ctx.fill();
-  }
-  // 輪郭
-  const keys = new Set(cells.map(([x, y]) => `${x},${y}`));
-  ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (const [x, y] of cells) {
-    const l = x * cell + 0.5, t = y * cell + 0.5, rr = (x + 1) * cell - 0.5, bb = (y + 1) * cell - 0.5;
-    if (!keys.has(`${x},${y - 1}`)) { ctx.moveTo(l, t); ctx.lineTo(rr, t); }
-    if (!keys.has(`${x},${y + 1}`)) { ctx.moveTo(l, bb); ctx.lineTo(rr, bb); }
-    if (!keys.has(`${x - 1},${y}`)) { ctx.moveTo(l, t); ctx.lineTo(l, bb); }
-    if (!keys.has(`${x + 1},${y}`)) { ctx.moveTo(rr, t); ctx.lineTo(rr, bb); }
-  }
-  ctx.stroke();
+// ステージのタイム（「23秒」「1分5秒」）
+function formatStageTime(ms) {
+  const sec = Math.floor(ms / 1000);
+  return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分${sec % 60}秒`;
 }
 
 let toastTimer = 0;
-function toast(text) {
+function toast(text, ms = 1100) {
   const t = $('toast');
   t.textContent = text;
   t.hidden = false;
   t.classList.remove('pop');
   void t.offsetWidth; // アニメーションをやり直す
   t.classList.add('pop');
+  t.style.animationDuration = `${ms}ms`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 1100);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
 
-function askResume(save, total) {
+// ---- 途中保存（れんしゅうだけ。Noun の番号とモードごと） ----
+
+const saveKey = (id) => `naoblock:game:v1:noun:${id}:${MODE}`;
+
+// ブロックの分け方が変わったら古い保存は使わない
+function signature(stages) {
+  const s = JSON.stringify(stages.map((st) => st.blocks.map((b) => b.cells)));
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16);
+}
+
+function loadSave(id, sig) {
+  try {
+    const save = JSON.parse(localStorage.getItem(saveKey(id)) || 'null');
+    return save && save.sig === sig ? save : null;
+  } catch { return null; }
+}
+
+function writeSave(id, data) {
+  try { localStorage.setItem(saveKey(id), JSON.stringify(data)); } catch { /* 保存できない環境では途中保存なし */ }
+}
+
+function clearSave(id) {
+  try { localStorage.removeItem(saveKey(id)); } catch { /* 無視 */ }
+}
+
+function askResume(save, game) {
   return new Promise((resolve) => {
     const d = $('resume');
-    $('resume-text').textContent = save.placed >= total
+    const done = save.done;
+    $('resume-text').textContent = done
       ? `この Noun は完成しています（${formatTime(save.elapsedMs)}）。`
-      : `途中まで組んであります（${save.placed} / ${total} 個・${formatTime(save.elapsedMs)}）。`;
-    $('resume-continue').textContent = save.placed >= total ? '完成図を見る' : '続きから';
+      : `途中まで組んであります（ステージ ${save.stage + 1} / ${game.stages.length}・ブロック ${game.placedCount} / ${game.totalBlocks}・${formatTime(save.elapsedMs)}）。`;
+    $('resume-continue').textContent = done ? '完成図を見る' : '続きから';
     d.hidden = false;
-    const done = (v) => { d.hidden = true; resolve(v); };
-    $('resume-continue').onclick = () => done(true);
-    $('resume-restart').onclick = () => done(false);
+    const finish = (v) => { d.hidden = true; resolve(v); };
+    $('resume-continue').onclick = () => finish(true);
+    $('resume-restart').onclick = () => finish(false);
   });
 }
 
@@ -111,16 +104,24 @@ function showHelp() {
   });
 }
 
+const anyModalOpen = () => ['help', 'resume', 'sample'].some((m) => !$(m).hidden);
+
 // ---- お手本の絵 ----
 
 const sample = { completed: null, original: null, frame: null, mode: 'completed' };
 
+const landscapeQuery = '(max-height: 500px) and (orientation: landscape)';
+
 function miniSize() {
+  if (window.matchMedia(landscapeQuery).matches) return 56;
   return window.matchMedia('(min-width: 700px)').matches ? 100 : 88;
 }
 
 function drawMini() {
   if (sample.completed) drawPixels($('mini-canvas'), sample.completed, miniSize(), sample.frame);
+  // 横向きでは、右の欄の見出しのすぐ下に置く
+  $('mini').style.top = window.matchMedia(landscapeQuery).matches
+    ? `${Math.round(document.querySelector('.hud-top').getBoundingClientRect().bottom + 6)}px` : '';
 }
 
 // 絵の大きさは、カードの中の実際の幅と、画面に収まる高さの両方を超えないように決める
@@ -164,28 +165,8 @@ function initSample() {
   });
 }
 
-function updateHud(info) {
-  const { step } = info;
-  $('step-label').textContent = info.done
-    ? '完成！'
-    : `ステップ ${info.stepIndex + 1} / ${info.stepCount}　${step.label}・${colorById(step.color).name}`;
-  $('progress-bar').style.width = `${(info.placed / info.total) * 100}%`;
-  $('progress-text').textContent = `${info.placed} / ${info.total} 個`;
-  if (info.currentPiece) {
-    drawPreview($('next-canvas'), info.currentPiece);
-    $('next-label').textContent = `${shapeLabel(info.currentPiece)} ${colorById(info.currentPiece.color).name}`;
-    $('next-remaining').textContent = `このステップ あと ${info.remainingInStep} 個`;
-    $('next').hidden = false;
-  } else {
-    $('next').hidden = true;
-  }
-  $('auto').textContent = info.auto ? '止める' : '残りを自動で置く';
-  $('auto').classList.toggle('stop', info.auto);
-  $('auto').disabled = info.done;
-}
-
 // 完成画面
-function showFinish(id, result, { plan, partsData, steps, play }) {
+function showFinish(id, result, { plan, partsData, steps, onAgain }) {
   $('finish-title').textContent = `Noun ${id} 完成！`;
   $('finish-stats').textContent = `使ったパーツ ${result.pieces}個・かかった時間 ${formatTime(result.elapsedMs)}`;
   const canvas = $('finish-canvas');
@@ -205,12 +186,14 @@ function showFinish(id, result, { plan, partsData, steps, play }) {
   $('finish-again').onclick = () => {
     document.title = `Noun ${id} を組み立てる｜ナオブロック`;
     show('play');
-    play.restart();
+    onAgain();
   };
   document.title = `Noun ${id} 完成！｜ナオブロック`;
   show('finish');
   window.scrollTo(0, 0);
 }
+
+// ---- 遊ぶ画面 ----
 
 async function start(id) {
   show('loading');
@@ -234,6 +217,8 @@ async function start(id) {
 
   const plan = makePlan(noun, { partsData });
   const steps = buildSteps(plan.pieces, plan.layout);
+  const stages = buildStages(buildBlocks(plan.pieces, plan.layout), plan.layout);
+  const sig = signature(stages);
   document.title = `Noun ${id} を組み立てる｜ナオブロック`;
   $('play-noun').textContent = `Noun ${id}`;
 
@@ -243,40 +228,192 @@ async function start(id) {
 
   show('play');
   drawMini();
-  let save = loadSave(id, plan.pieces);
-  if (save && save.placed > 0 && !(await askResume(save, plan.pieces.length))) save = null;
 
-  let play;
-  const board = new Board($('board-wrap'), $('board'), {
+  let save = loadSave(id, sig);
+  if (save && (save.done || save.stage > 0 || save.block > 0)) {
+    const preview = new Game({ stages, layout: plan.layout, save });
+    if (!(await askResume(save, preview))) { save = null; clearSave(id); }
+  } else {
+    save = null;
+  }
+
+  // ---- 時間（最初の操作から数える。画面を離れている間は止める） ----
+  const clock = {
+    elapsed: save?.elapsedMs || 0,
+    stageStart: save?.stageStartMs || 0,
+    since: null,
+    start() { if (this.since == null) this.since = performance.now(); },
+    pause() { if (this.since != null) { this.elapsed += performance.now() - this.since; this.since = null; } },
+    get now() { return this.elapsed + (this.since != null ? performance.now() - this.since : 0); },
+  };
+
+  let game = new Game({ stages, layout: plan.layout, save: save && !save.done ? save : null });
+  let finished = !!save?.done;
+  let locked = false;
+  let hintMs = 0;
+
+  const view = new GameView($('board-wrap'), $('board'), {
     layout: plan.layout,
     pieces: plan.pieces,
     plateHex: PLATE_HEX,
-    onTap: (cx, cy) => play?.tap(cx, cy),
+    game,
+    onTap: (cx, cy) => act(() => tap(cx, cy)),
   });
-  play = new Play({
-    id,
-    pieces: plan.pieces,
-    steps,
-    board,
-    save,
-    hooks: {
-      onChange: (info) => {
-        updateHud(info);
-        sample.frame = info.done ? null : stepArea(info.step, plan.pieces, plan.layout);
-        drawMini();
-      },
-      onStepDone: (si) => toast(`ステップ ${si + 1} 完了！`),
-      // 完成した盤面を少し見せてから完成画面へ
-      onComplete: (result) => setTimeout(() => showFinish(id, result, { plan, partsData, steps, play }), 700),
-    },
-  });
-  if (!save) play.restart(); // 「最初から」を選んだら保存も消す
-  if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, { plan, partsData, steps, play });
-  else if (!helpSeen()) showHelp();
 
-  $('auto').onclick = () => (play.auto ? play.stopAuto() : play.startAuto());
-  $('zoom-in').onclick = () => { board.zoomBy(1.5); board.ensureVisible(play.info().current, false); };
-  $('zoom-out').onclick = () => board.zoomBy(1 / 1.5);
+  const persist = () => {
+    writeSave(id, {
+      v: 1, sig, mode: MODE, ...game.snapshot(), done: finished,
+      elapsedMs: Math.round(clock.now), stageStartMs: Math.round(clock.stageStart),
+    });
+  };
+
+  const updateHud = () => {
+    if (game.done) {
+      $('step-label').textContent = '完成！';
+    } else {
+      $('step-label').textContent = `ステージ ${game.stageIndex + 1} / ${game.stages.length}　${game.stage.label}`;
+    }
+    $('progress-text').textContent = `ブロック ${game.placedCount} / ${game.totalBlocks}`;
+    $('progress-bar').style.width = `${(game.placedCount / game.totalBlocks) * 100}%`;
+    drawBlockPreview($('next-canvas'), game.nextBlock);
+    sample.frame = game.done ? null : game.stageArea();
+    drawMini();
+  };
+
+  const resetHint = () => { hintMs = 0; view.hint = false; };
+
+  // 操作の共通の入口：止めている間や案内を出している間は受け付けない
+  const act = (fn) => {
+    if (locked || finished || game.done || anyModalOpen()) return;
+    sound.unlock();
+    clock.start();
+    fn();
+  };
+
+  const moved = (from) => view.movedFrom(from.x, from.y);
+
+  const afterPlaced = (block, res) => {
+    view.dropBlock(block, () => sound.click());
+    resetHint();
+    if (res.stageCleared) {
+      const st = res.clearedStage;
+      const time = clock.now - clock.stageStart;
+      game.stageTimes[st] = Math.round(time);
+      clock.stageStart = clock.now;
+      locked = true;
+      view.locked = true;
+      setTimeout(() => sound.stepDone(), 150);
+      if (!res.done) {
+        toast(`ステージ ${st + 1} クリア！ ${formatStageTime(time)}`, CLEAR_PAUSE_MS);
+        setTimeout(() => { locked = false; view.locked = false; }, CLEAR_PAUSE_MS);
+      }
+    }
+    if (res.done) {
+      clock.pause();
+      finished = true;
+      persist();
+      updateHud();
+      setTimeout(() => sound.complete(), 400);
+      // 完成した盤面を少し見せてから完成画面へ
+      setTimeout(() => showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed }, { plan, partsData, steps, onAgain: restart }), 1200);
+      return;
+    }
+    persist();
+    updateHud();
+  };
+
+  const place = () => {
+    const block = game.block;
+    const from = { ...game.held };
+    const res = game.place();
+    if (res.ok) afterPlaced(block, res);
+    else { view.shake(); moved(from); sound.nope(); }
+  };
+
+  const tap = (cx, cy) => {
+    const block = game.block;
+    const from = { ...game.held };
+    const r = game.tapCell(cx, cy);
+    if (r === 'placed') {
+      const res = game.place();
+      if (res.ok) afterPlaced(block, res);
+    } else if (r === 'moved') {
+      moved(from);
+    }
+  };
+
+  const restart = () => {
+    clearSave(id);
+    game = new Game({ stages, layout: plan.layout });
+    view.game = game;
+    finished = false;
+    locked = false;
+    view.locked = false;
+    clock.elapsed = 0; clock.stageStart = 0; clock.since = null;
+    resetHint();
+    view.refresh();
+    updateHud();
+  };
+
+  // ---- コントローラー（押しっぱなしで続けて動く） ----
+  const hold = (btn, fn) => {
+    let timer = 0, repeat = 0;
+    const stop = () => { clearTimeout(timer); clearInterval(repeat); btn.classList.remove('pressed'); };
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.classList.add('pressed');
+      fn();
+      timer = setTimeout(() => { repeat = setInterval(fn, 80); }, 280);
+    });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, stop);
+    btn.addEventListener('click', (e) => e.preventDefault());
+  };
+  const tapButton = (btn, fn) => {
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.classList.add('pressed'); fn(); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, () => btn.classList.remove('pressed'));
+  };
+
+  const move = (dx, dy) => act(() => { const from = { ...game.held }; game.move(dx, dy); moved(from); });
+  const rotate = (dir) => act(() => game.rotate(dir));
+
+  document.querySelectorAll('.dpad .pad').forEach((b) => hold(b, () => move(Number(b.dataset.dx), Number(b.dataset.dy))));
+  tapButton($('rotate-left'), () => rotate(-1));
+  tapButton($('rotate-right'), () => rotate(1));
+  tapButton($('place'), () => act(place));
+
+  // ---- キーボード（矢印・Z / X・スペース） ----
+  window.addEventListener('keydown', (e) => {
+    if ($('view-play').hidden || anyModalOpen()) return;
+    const keys = {
+      ArrowLeft: () => move(-1, 0), ArrowRight: () => move(1, 0), ArrowUp: () => move(0, -1), ArrowDown: () => move(0, 1),
+      z: () => rotate(-1), Z: () => rotate(-1), x: () => rotate(1), X: () => rotate(1),
+      ' ': () => act(place), Enter: () => act(place),
+    };
+    const fn = keys[e.key];
+    if (!fn) return;
+    e.preventDefault();
+    if ((e.key === ' ' || e.key === 'Enter') && e.repeat) return;
+    fn();
+  });
+
+  // ---- ヒント（れんしゅう：5 秒迷ったら正解の場所が光る） ----
+  setInterval(() => {
+    if (document.hidden || locked || finished || game.done || anyModalOpen() || $('view-play').hidden) return;
+    hintMs += 250;
+    if (hintMs >= HINT_MS) view.hint = true;
+  }, 250);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { clock.pause(); if (!finished && !game.done) persist(); }
+  });
+  window.addEventListener('pagehide', () => { clock.pause(); if (!finished && !game.done) persist(); });
+
+  updateHud();
+  if (finished) {
+    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed }, { plan, partsData, steps, onAgain: restart });
+  } else if (!helpSeen()) {
+    showHelp();
+  }
 }
 
 function init() {

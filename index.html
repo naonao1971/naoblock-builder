@@ -12,7 +12,7 @@
 <body data-view="start">
   <section id="view-start" class="page">
     <h1>ナオブロック <small>naoblock</small></h1>
-    <p class="lead">Nouns の番号を入れると、40×40 の平面ドット絵を、説明書どおりに 1 個ずつ組み立てて遊べます。</p>
+    <p class="lead">Nouns の番号を入れると、40×40 のドット絵になるブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
     <form class="start-form" method="get" action="">
       <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
       <button type="submit" class="primary">組み立てる</button>
@@ -30,35 +30,47 @@
 
   <section id="view-play" hidden>
     <header class="hud-top">
-      <div class="hud-row">
-        <a class="brand" href="./" title="別の Noun で遊ぶ">naoblock</a>
-        <span id="play-noun"></span>
-        <span id="progress-text" class="muted"></span>
+      <div class="hud-main">
+        <div class="hud-info">
+          <div class="hud-row">
+            <a class="brand" href="./" title="別の Noun で遊ぶ">naoblock</a>
+            <span id="play-noun"></span>
+            <span id="progress-text" class="muted"></span>
+          </div>
+          <div id="step-label" class="step-label"></div>
+        </div>
+        <div class="next-box" aria-label="次のブロック">
+          <span class="next-title">つぎ</span>
+          <canvas id="next-canvas"></canvas>
+        </div>
       </div>
-      <div id="step-label" class="step-label"></div>
       <div class="progress"><div id="progress-bar"></div></div>
     </header>
 
     <div class="board-area">
       <div id="board-wrap" class="board-wrap">
-        <canvas id="board" aria-label="盤面。光っている場所をタップしてパーツを置きます"></canvas>
+        <canvas id="board" aria-label="盤面。マスをタップするとブロックがそこへ飛びます。持っているブロックをタップすると回ります"></canvas>
       </div>
       <button id="mini" type="button" class="mini" aria-label="完成図を大きく見る"><canvas id="mini-canvas"></canvas></button>
     </div>
 
-    <footer class="hud-bottom">
-      <div id="next" class="next">
-        <span class="next-title">次のパーツ</span>
-        <canvas id="next-canvas" aria-hidden="true"></canvas>
-        <span id="next-label" class="next-label"></span>
-        <span id="next-remaining" class="muted"></span>
+    <footer class="controller">
+      <div class="dpad" role="group" aria-label="動かす">
+        <button type="button" class="pad up" data-dx="0" data-dy="-1" aria-label="上へ">▲</button>
+        <button type="button" class="pad left" data-dx="-1" data-dy="0" aria-label="左へ">◀</button>
+        <button type="button" class="pad right" data-dx="1" data-dy="0" aria-label="右へ">▶</button>
+        <button type="button" class="pad down" data-dx="0" data-dy="1" aria-label="下へ">▼</button>
       </div>
-      <div class="buttons">
-        <button id="auto" type="button" class="primary">残りを自動で置く</button>
-        <button id="zoom-out" type="button" aria-label="縮小">－</button>
-        <button id="zoom-in" type="button" aria-label="拡大">＋</button>
-        <button id="mute" type="button" aria-label="消音">🔊</button>
-        <button id="help-open" type="button" aria-label="遊び方">？</button>
+      <div class="tools">
+        <button id="mute" type="button" class="small" aria-label="消音">🔊</button>
+        <button id="help-open" type="button" class="small" aria-label="遊び方">？</button>
+      </div>
+      <div class="actions">
+        <div class="rotates">
+          <button id="rotate-left" type="button" aria-label="左に回す">↺</button>
+          <button id="rotate-right" type="button" aria-label="右に回す">↻</button>
+        </div>
+        <button id="place" type="button" class="primary place">はめる</button>
       </div>
       <p class="legal">Nouns は CC0 です。nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
     </footer>
@@ -83,9 +95,10 @@
       <div class="card" role="dialog" aria-label="遊び方">
         <h2>遊び方</h2>
         <ul class="help-list">
-          <li>光っているところをタップすると、ブロックがはまります</li>
+          <li>十字キー（PC は矢印キー）でブロックを動かし、回転ボタン（Z / X）で向きを合わせて、「はめる」（スペース）で置きます</li>
+          <li>盤面のマスをタップすると、ブロックがそこへ飛びます。持っているブロックをタップすると回ります</li>
+          <li>正しい場所に重なると、ブロックの縁が光ります。5 秒迷うと、置く場所が光ります</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
-          <li>面倒になったら「残りを自動で置く」でどんどん進められます</li>
         </ul>
         <div class="buttons">
           <button id="help-close" type="button" class="primary">はじめる</button>
