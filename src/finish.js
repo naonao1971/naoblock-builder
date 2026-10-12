@@ -24,8 +24,8 @@ export function formatTimeShort(ms) {
   return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分`;
 }
 
-export function shareText(id, pieces, elapsedMs, mode = 'practice') {
-  if (mode === 'timeattack') return `Noun ${id} をナオブロックで組み立てた！ タイムアタック ${formatTime(elapsedMs)} #naoblock #Nouns`;
+export function shareText(id, pieces, elapsedMs, mode = 'practice', guide = false) {
+  if (mode === 'timeattack') return `Noun ${id} をナオブロックで組み立てた！ タイムアタック${guide ? '（ガイドあり）' : ''} ${formatTime(elapsedMs)} #naoblock #Nouns`;
   return `Noun ${id} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} #naoblock #Nouns`;
 }
 
@@ -155,7 +155,7 @@ const formatDate = (ms) => {
 
 // 結果：モード・合計タイム・ステージごとのタイム。タイムアタックはランキング（この端末の上位 5 件）も
 // stages は src/stages.js の buildStages の結果（ステージ名とブロック数に使う）
-export function renderResult(container, { mode, totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
+export function renderResult(container, { mode, guide = false, totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
   const ta = mode === 'timeattack';
   const rows = stages.map((st, i) => {
     const t = stageTimes[i];
@@ -163,14 +163,14 @@ export function renderResult(container, { mode, totalMs, stageTimes = [], stages
     return el('tr', {}, el('td', {}, `ステージ ${i + 1}　${st.label}`), el('td', { class: 'num' }, time));
   });
   const parts = [
-    el('h3', {}, ta ? 'タイムアタックの結果' : 'れんしゅうの結果'),
+    el('h3', {}, `${ta ? 'タイムアタック' : 'れんしゅう'}${guide ? '（ガイドあり）' : ''}の結果`),
     el('table', { class: 'result-table' },
       el('tbody', {}, rows),
       el('tfoot', {}, el('tr', {}, el('td', {}, '合計'), el('td', { class: 'num' }, formatTimeFine(totalMs))))),
   ];
   if (!ta) parts.push(el('p', { class: 'note' }, 'れんしゅうのタイムは、最初の操作からの時間です（ステージクリアの表示の間も入ります）。'));
   if (ta && ranking) {
-    parts.push(el('h3', {}, 'ランキング（この端末・この Noun）'));
+    parts.push(el('h3', {}, `ランキング（この端末・この Noun・${guide ? 'ガイドあり' : 'ガイドなし'}）`));
     parts.push(el('ol', { class: 'ranking' }, ranking.map((r, i) => el('li', { class: i === rank ? 'me' : '' },
       el('span', { class: 'rank-no' }, `${i + 1}位`),
       el('span', { class: 'rank-time' }, formatTimeFine(r.totalMs)),

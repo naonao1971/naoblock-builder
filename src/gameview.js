@@ -8,7 +8,7 @@ const SHAKE_MS = 320;
 const MAX_BACKING = 4096; // canvas の実ピクセルの上限（iOS の制限よけ）
 
 export class GameView {
-  constructor(container, canvas, { layout, pieces, plateHex, game, onTap }) {
+  constructor(container, canvas, { layout, pieces, plateHex, game, guide = false, onTap }) {
     this.container = container;
     this.canvas = canvas;
     this.layout = layout;
@@ -16,6 +16,7 @@ export class GameView {
     this.plateHex = plateHex;
     this.game = game;
     this.onTap = onTap;
+    this.guide = guide; // ガイドあり：まだ置いていないブロックの形を、薄い色と線であらかじめ出す
     this.layer = document.createElement('canvas'); // プレートと置き終わったパーツ
     this.hint = false;
     this.locked = false; // ステージクリアの間は光らせない
@@ -81,7 +82,12 @@ export class GameView {
     ctx.fillRect(0, 0, this.layer.width, this.layer.height);
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) drawStud(ctx, s, x, y, this.plateHex);
     const dropping = new Set(this.drops.map((d) => d.block.id));
-    for (const b of this.game.placedBlocks()) {
+    const placed = this.game.placedBlocks();
+    if (this.guide) {
+      const done = new Set(placed.filter((b) => !dropping.has(b.id)).map((b) => b.id));
+      for (const st of this.game.stages) for (const b of st.blocks) if (!done.has(b.id)) drawGuide(ctx, s, b);
+    }
+    for (const b of placed) {
       if (dropping.has(b.id)) continue;
       for (const i of b.pieces) drawPiece(ctx, s, this.pieces[i]);
     }
@@ -250,6 +256,21 @@ export class GameView {
     this.resizeObserver.disconnect();
     cancelAnimationFrame(this.raf);
   }
+}
+
+// ガイド：ブロックの形を薄い色で塗り、外形を線で囲む（ジグソーパズルの台紙のように）
+function drawGuide(ctx, s, block) {
+  const hex = colorById(block.color).hex;
+  ctx.save();
+  ctx.globalAlpha = 0.38;
+  ctx.fillStyle = `#${hex}`;
+  for (const [x, y] of block.cells) ctx.fillRect(x * s, y * s, s, s);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = rgb(hex, -60, 0.75);
+  ctx.lineWidth = Math.max(1, s * 0.1);
+  outlinePath(ctx, s, block.cells, ctx.lineWidth / 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // ブロックの見本（「つぎ」）：形だけを小さく描く
