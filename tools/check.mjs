@@ -1,4 +1,4 @@
-// 検証用：node tools/check.mjs 11
+// 検証用：node tools/check.mjs 11（パーツ割りと組立順の検算）
 // オプション：
 //   --seed=body,accessory,head,glasses  サブグラフを使わずに seed を指定する
 //   --image-data=path                   unpkg を使わずに image-data.json を読む
@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchSeed, fetchImageData, decodeNoun } from '../src/nouns.js';
 import { BLOCK_COLORS, colorById } from '../src/palette.js';
 import { makePlan } from '../src/plan.js';
+import { buildSteps, verifySteps } from '../src/steps.js';
 
 const args = process.argv.slice(2);
 const opt = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
@@ -68,6 +69,21 @@ console.log(`  ${mark(sumCells === v.filledCells)}覆ったマス ${sumCells} �
 console.log(`  ${mark(same)}同じ入力で 2 回作って同じ結果`);
 console.log('');
 
+console.log('## 組立順');
+const steps = buildSteps(plan.pieces, plan.layout);
+const stepsAgain = buildSteps(again.pieces, again.layout);
+const sv = verifySteps(plan.pieces, steps, plan.layout);
+const sameSteps = JSON.stringify(steps) === JSON.stringify(stepsAgain);
+console.log(`  ${mark(sv.ok)}全パーツがちょうど 1 回ずつどこかのステップに入っている／継ぎ目をまたぐパーツ ${sv.joinCount} 個は両方のプレートの後${sv.ok ? '' : `（${sv.errors.length} 件）`}`);
+for (const e of sv.errors.slice(0, 20)) console.log(`      ${e}`);
+console.log(`  ${mark(sameSteps)}同じ入力で 2 回作って組立順も同じ`);
+console.log('  （各パーツは 幅×高さ@(左上のマスの x,y)）');
+steps.forEach((st, i) => {
+  const list = st.pieces.map((n) => { const p = plan.pieces[n]; return `${p.w}×${p.h}@(${p.x},${p.y})`; }).join(' ');
+  console.log(`  ステップ ${String(i + 1).padStart(2)}: ${st.label}・${name(st.color)}（${st.pieces.length} 個） ${list}`);
+});
+console.log('');
+
 console.log('## 継ぎ目');
 for (const s of plan.seams) {
   const gaps = s.gaps.map((g) => `${g.from}-${g.to - 1}${g.kind === 'empty' ? '(背景)' : '(ブロックあり)'}`).join(', ');
@@ -87,5 +103,5 @@ for (const l of sh.lines) {
 console.log(`  ${sh.plate.name} × ${sh.plate.count} 枚  ${yen(sh.plate.price)}`);
 console.log(`  合計: パーツ ${sh.bags} 袋 ${yen(sh.partsTotal)} ＋ プレート ${yen(sh.plate.price)} ＝ ${yen(sh.total)}`);
 
-const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same;
+const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps;
 process.exit(allOk ? 0 : 1);
