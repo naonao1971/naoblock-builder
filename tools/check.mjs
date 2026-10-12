@@ -8,6 +8,9 @@ import { fetchSeed, fetchImageData, decodeNoun } from '../src/nouns.js';
 import { BLOCK_COLORS, colorById } from '../src/palette.js';
 import { makePlan } from '../src/plan.js';
 import { tile, pieceCells } from '../src/tiling.js';
+import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
+import { buildStages } from '../src/stages.js';
+import { partsList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
 
 const args = process.argv.slice(2);
@@ -89,6 +92,30 @@ steps.forEach((st, i) => {
 });
 console.log('');
 
+console.log('## ゲームのブロックとステージ');
+const blocks = buildBlocks(plan.pieces, plan.layout);
+const blocksAgain = buildBlocks(again.pieces, again.layout);
+const bv = verifyBlocks(plan.pieces, blocks, plan.layout);
+const sameBlocks = JSON.stringify(blocks) === JSON.stringify(blocksAgain);
+const stages = buildStages(blocks, plan.layout);
+const sameParts = JSON.stringify(partsList(plan.pieces)) === JSON.stringify(plan.parts);
+console.log(`  ${mark(bv.ok)}全パーツがちょうど 1 回ずつどれかのブロックに入っている／ブロックの中は同じ色／ステージをまたいでいない${bv.ok ? '' : `（${bv.errors.length} 件）`}`);
+for (const e of bv.errors.slice(0, 20)) console.log(`      ${e}`);
+console.log(`  ${mark(sameBlocks)}同じ入力で 2 回作ってブロックも同じ`);
+console.log(`  ${mark(sameParts)}部品リスト・買い物リストは標準パーツのまま（${plan.pieces.length} 個）`);
+const orient = new Map();
+for (const b of blocks) { const n = orientationCount(b.cells); orient.set(n, (orient.get(n) || 0) + 1); }
+console.log(`  回したときの向きの数：${[...orient.entries()].sort((a, b) => a[0] - b[0]).map(([n, c]) => `${n} 通り ${c} 個`).join('、')}`);
+for (const st of stages) {
+  const combos = st.blocks.filter((b) => b.combo);
+  const ratio = st.blocks.length ? Math.round((combos.length / st.blocks.length) * 100) : 0;
+  const speed = st.type === 'puzzle' ? 'パズル型' : `落ちてくる型 ${st.fallMs / 1000}秒/マス`;
+  console.log(`  ステージ ${st.index + 1}：${st.label}（${speed}）ブロック ${st.blocks.length} 個（組み合わせ ${combos.length} 個・${ratio}%、パーツ ${st.blocks.reduce((n, b) => n + b.pieces.length, 0)} 個）`);
+  console.log(`      出る順：${st.blocks.map((b) => `${b.combo ? `組${b.pieces.length}` : plan.pieces[b.pieces[0]].shape.replace('x', '×')}@(${b.x},${b.y})`).join(' ')}`);
+}
+console.log('  （出る順は 下の行から・同じ行なら左から。「組2」「組3」は標準パーツ 2・3 個の組み合わせブロック、@ は囲む四角の左上）');
+console.log('');
+
 console.log('## 継ぎ目');
 for (const s of plan.seams) {
   const gaps = s.gaps.map((g) => `${g.from}-${g.to - 1}${g.kind === 'empty' ? '(背景)' : '(ブロックあり)'}`).join(', ');
@@ -108,5 +135,5 @@ for (const l of sh.lines) {
 console.log(`  ${sh.plate.name} × ${sh.plate.count} 枚  ${yen(sh.plate.price)}`);
 console.log(`  合計: パーツ ${sh.bags} 袋 ${yen(sh.partsTotal)} ＋ プレート ${yen(sh.plate.price)} ＝ ${yen(sh.total)}`);
 
-const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps && singlesNow <= singlesBefore;
+const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps && singlesNow <= singlesBefore && bv.ok && sameBlocks && sameParts;
 process.exit(allOk ? 0 : 1);
