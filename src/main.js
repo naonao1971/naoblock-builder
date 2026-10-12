@@ -7,6 +7,7 @@ import { Board } from './board.js';
 import { Play, loadSave } from './play.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
+import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts } from './finish.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -16,13 +17,8 @@ const HELP_KEY = 'naoblock:help-seen';
 const $ = (id) => document.getElementById(id);
 
 function show(view) {
-  for (const v of ['start', 'loading', 'play']) $(`view-${v}`).hidden = v !== view;
+  for (const v of ['start', 'loading', 'play', 'finish']) $(`view-${v}`).hidden = v !== view;
   document.body.dataset.view = view;
-}
-
-export function formatTime(ms) {
-  const sec = Math.floor(ms / 1000);
-  return `${Math.floor(sec / 60)}分${sec % 60}秒`;
 }
 
 const shapeLabel = (p) => `${Math.min(p.w, p.h)}×${Math.max(p.w, p.h)}`;
@@ -175,11 +171,23 @@ function updateHud(info) {
   $('auto').disabled = info.done;
 }
 
-function showFinish(id, result, play) {
+// 完成画面
+function showFinish(id, result, { plan, partsData, play }) {
   $('finish-title').textContent = `Noun ${id} 完成！`;
-  $('finish-stats').textContent = `使ったパーツ ${result.pieces} 個・かかった時間 ${formatTime(result.elapsedMs)}`;
-  $('finish').hidden = false;
-  $('finish-again').onclick = () => { $('finish').hidden = true; play.restart(); };
+  $('finish-stats').textContent = `使ったパーツ ${result.pieces}個・かかった時間 ${formatTime(result.elapsedMs)}`;
+  const canvas = $('finish-canvas');
+  drawFinishImage(canvas, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX });
+  $('save-image').onclick = () => downloadCanvas(canvas, `naoblock-noun${id}.png`);
+  $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs), appUrl(id, location.href));
+  renderRealParts($('real-parts'), plan, partsData);
+  $('finish-again').onclick = () => {
+    document.title = `Noun ${id} を組み立てる｜ナオブロック`;
+    show('play');
+    play.restart();
+  };
+  document.title = `Noun ${id} 完成！｜ナオブロック`;
+  show('finish');
+  window.scrollTo(0, 0);
 }
 
 async function start(id) {
@@ -236,11 +244,12 @@ async function start(id) {
         drawMini();
       },
       onStepDone: (si) => toast(`ステップ ${si + 1} 完了！`),
-      onComplete: (result) => showFinish(id, result, play),
+      // 完成した盤面を少し見せてから完成画面へ
+      onComplete: (result) => setTimeout(() => showFinish(id, result, { plan, partsData, play }), 700),
     },
   });
   if (!save) play.restart(); // 「最初から」を選んだら保存も消す
-  if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, play);
+  if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, { plan, partsData, play });
   else if (!helpSeen()) showHelp();
 
   $('auto').onclick = () => (play.auto ? play.stopAuto() : play.startAuto());

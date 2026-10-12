@@ -102,17 +102,32 @@
       </div>
     </div>
 
-    <div id="finish" class="modal" hidden>
-      <div class="card">
-        <h2 id="finish-title"></h2>
-        <p id="finish-stats"></p>
-        <p class="muted">完成画面（画像の保存・シェア・部品リスト）は次の PR で作ります。</p>
-        <div class="buttons">
-          <button id="finish-again" type="button" class="primary">もう一度</button>
-          <a class="button" href="./">別の Noun で遊ぶ</a>
-        </div>
-      </div>
+  </section>
+
+  <section id="view-finish" class="page finish" hidden>
+    <h1 id="finish-title"></h1>
+    <p id="finish-stats" class="finish-stats"></p>
+    <canvas id="finish-canvas" aria-label="完成図"></canvas>
+    <div class="finish-actions">
+      <button id="save-image" type="button" class="primary">画像を保存</button>
+      <a id="share-x" class="button" target="_blank" rel="noopener">X にシェア</a>
     </div>
+    <p class="note">X には画像が自動で付かないので、「画像を保存」してから貼ってね。</p>
+
+    <details class="real">
+      <summary>実物で組むなら</summary>
+      <div id="real-parts"></div>
+    </details>
+
+    <div class="finish-actions">
+      <button id="finish-again" type="button">もう一度</button>
+      <a class="button" href="./">別の Noun で遊ぶ</a>
+    </div>
+
+    <footer class="legal">
+      <p>Nouns は CC0 です。</p>
+      <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
+    </footer>
   </section>
 </body>
 </html>
