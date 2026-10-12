@@ -19,8 +19,8 @@ const HELP_KEY = 'naoblock:help-seen-game';
 const HINT_MS = 5000; // れんしゅう：5 秒迷ったら正解の場所が光る
 const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
-const TA_MS_PER_BLOCK = 4000; // 制限時間＝ステージのブロック数 × 4 秒
-const TA_HINT_PENALTY_MS = 5000; // ヒント 1 回で +5 秒
+const TA_MS_PER_BLOCK = 10000; // 制限時間＝ステージのブロック数 × 10 秒
+const TA_HINT_PENALTY_MS = 3000; // ヒント 1 回で +3 秒
 const PRACTICE_FALL_SLOWER = 2; // れんしゅうの落ちる速さはタイムアタックの半分
 
 const MODES = { practice: 'れんしゅう', timeattack: 'タイムアタック' };
@@ -516,12 +516,12 @@ async function start(id) {
   tapButton($('rotate-left'), () => rotate(-1));
   tapButton($('rotate-right'), () => rotate(1));
   tapButton($('place'), () => act(place));
-  // タイムアタック：ヒントボタン（押すと正しい場所が光る。1 回 +5 秒）
+  // タイムアタック：ヒントボタン（押すと正しい場所が光る。1 回 +3 秒）
   tapButton($('hint'), () => act(() => {
     if (view.hint) return; // もう光っているときは数えない
     view.hint = true;
     clock.elapsed += TA_HINT_PENALTY_MS;
-    toast('ヒント ＋5秒', 700);
+    toast('ヒント ＋3秒', 700);
     updateTimer();
   }));
 
