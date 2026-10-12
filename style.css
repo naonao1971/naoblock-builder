@@ -100,15 +100,16 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 64px;
-  min-height: 52px;
+  width: 96px;
+  height: 58px;
+  overflow: hidden;
   padding: 3px 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--bg);
 }
 .next-title { color: var(--muted); font-size: 0.7rem; line-height: 1.2; }
-#next-canvas { display: block; max-width: 96px; max-height: 40px; object-fit: contain; }
+#next-canvas { display: block; }
 
 .board-area {
   flex: 1;
@@ -136,6 +137,8 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  /* 速く続けてタップしても、ブラウザのダブルタップ拡大に取られないように */
+  touch-action: none;
 }
 
 /* お手本の小窓（盤面の右上に固定。盤面と一緒にスクロールしない） */
@@ -194,24 +197,29 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 .tools .small { width: 40px; min-height: 36px; padding: 0; font-size: 1rem; }
 .actions { grid-area: actions; display: flex; flex-direction: column; gap: 6px; }
 .rotates { display: flex; gap: 6px; }
-.rotates button { width: 56px; min-height: 44px; padding: 0; font-size: 1.4rem; }
-.actions .place { min-height: 56px; font-size: 1.1rem; }
+/* 回転と「はめる」は子どもの指でも押しやすい大きさに（1 個 64px 以上、はめるがいちばん大きい） */
+.rotates button { width: 64px; min-height: 64px; padding: 0; font-size: 1.9rem; border-radius: 14px; }
+.actions .place { min-height: 76px; font-size: 1.35rem; border-radius: 16px; letter-spacing: 0.08em; }
 .controller button.pressed { filter: brightness(0.9); transform: translateY(1px); }
 .controller .legal { grid-area: legal; margin: 2px 0 0; font-size: 0.6rem; line-height: 1.35; }
 
+/* 幅の狭いスマホ（360px 前後）：十字キーと間をほんの少し詰めて、大きいボタンを収める */
+@media (max-width: 370px) {
+  .controller { gap: 4px 6px; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .dpad { grid-template-columns: repeat(3, 44px); }
+}
+
 /* スマホ横向き：盤面を左、情報・小窓・コントローラーを右に */
 @media (max-height: 500px) and (orientation: landscape) {
-  #view-play { display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr; }
+  #view-play { display: grid; grid-template-columns: 1fr 344px; grid-template-rows: auto 1fr; }
   .hud-top { grid-column: 2; grid-row: 1; border-bottom: 0; border-left: 1px solid var(--line); }
   .hud-row { white-space: nowrap; font-size: 0.75rem; gap: 6px; }
   .step-label { font-size: 0.9rem; }
-  .next-box { min-width: 52px; min-height: 44px; }
+  .next-box { width: 88px; height: 58px; }
   .controller { grid-column: 2; grid-row: 2; border-top: 0; border-left: 1px solid var(--line); align-content: end; gap: 2px 8px; }
   .board-area { grid-column: 1; grid-row: 1 / 3; }
   .dpad { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 34px); }
   .tools .small { width: 36px; min-height: 32px; }
-  .rotates button { width: 46px; min-height: 38px; font-size: 1.2rem; }
-  .actions .place { min-height: 44px; }
   .controller .legal { font-size: 0.55rem; }
   /* 小窓は盤面に重ならないよう、右の欄の見出しの下に置く（top は main.js で合わせる） */
   .mini { position: fixed; right: max(12px, env(safe-area-inset-right)); }

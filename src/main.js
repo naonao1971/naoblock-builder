@@ -114,14 +114,29 @@ const landscapeQuery = '(max-height: 500px) and (orientation: landscape)';
 
 function miniSize() {
   if (window.matchMedia(landscapeQuery).matches) return 56;
+  if (window.matchMedia('(max-height: 760px) and (orientation: portrait)').matches) return 64;
   return window.matchMedia('(min-width: 700px)').matches ? 100 : 88;
 }
 
 function drawMini() {
   if (sample.completed) drawPixels($('mini-canvas'), sample.completed, miniSize(), sample.frame);
+  const landscape = window.matchMedia(landscapeQuery).matches;
   // 横向きでは、右の欄の見出しのすぐ下に置く
-  $('mini').style.top = window.matchMedia(landscapeQuery).matches
+  $('mini').style.top = landscape
     ? `${Math.round(document.querySelector('.hud-top').getBoundingClientRect().bottom + 6)}px` : '';
+  // 縦向きで盤面の上の余白が小窓より狭いときは、盤面の上に小窓の場所を空ける（盤面は少し小さくなる）
+  const wrap = $('board-wrap');
+  let pad = '';
+  if (!landscape && !$('view-play').hidden) {
+    // 余白なしで盤面を真ん中に置いたとき、右上の小窓と重なるか
+    const area = document.querySelector('.board-area').getBoundingClientRect();
+    const mini = $('mini');
+    const side = Math.min(area.width, area.height) - 12;
+    const boardTop = (area.height - side) / 2, boardRight = (area.width + side) / 2;
+    const miniBottom = 8 + mini.offsetHeight, miniLeft = area.width - 8 - mini.offsetWidth;
+    if (boardTop < miniBottom + 4 && boardRight > miniLeft - 4) pad = `${mini.offsetHeight + 14}px`;
+  }
+  if (wrap.style.paddingTop !== pad) wrap.style.paddingTop = pad;
 }
 
 // 絵の大きさは、カードの中の実際の幅と、画面に収まる高さの両方を超えないように決める

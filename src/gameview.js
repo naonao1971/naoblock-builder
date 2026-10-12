@@ -33,7 +33,9 @@ export class GameView {
 
   resize() {
     const pad = 12;
-    const cw = this.container.clientWidth - pad, ch = this.container.clientHeight - pad;
+    const cs = getComputedStyle(this.container);
+    const cw = this.container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - pad;
+    const ch = this.container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - pad;
     const cell = Math.max(3, Math.min(cw / this.layout.width, ch / this.layout.height));
     const cssW = cell * this.layout.width, cssH = cell * this.layout.height;
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_BACKING / Math.max(cssW, cssH));
@@ -251,7 +253,8 @@ export class GameView {
 }
 
 // ブロックの見本（「つぎ」）：形だけを小さく描く
-export function drawBlockPreview(canvas, block, cellPx = 12) {
+// 見本の枠（幅 84px・高さ 40px）に収まる大きさで描く。枠の大きさは変えないので、見出しの高さも変わらない
+export function drawBlockPreview(canvas, block, maxCell = 12, boxW = 84, boxH = 40) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   if (!block) {
@@ -260,6 +263,7 @@ export function drawBlockPreview(canvas, block, cellPx = 12) {
     return;
   }
   const cells = block.cells.map(([x, y]) => [x - block.x, y - block.y]);
+  const cellPx = Math.max(4, Math.min(maxCell, Math.floor(boxW / block.w), Math.floor(boxH / block.h)));
   const s = cellPx * dpr;
   canvas.width = block.w * s;
   canvas.height = block.h * s;
