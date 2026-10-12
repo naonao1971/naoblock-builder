@@ -168,7 +168,8 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 .sample-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; height: 44px; }
 .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .segmented button { border: 0; border-radius: 0; min-height: 40px; }
-.segmented button[aria-selected="true"] { background: var(--accent); color: #fff; font-weight: bold; }
+.segmented button[aria-selected="true"],
+.segmented button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: bold; }
 .close { margin-left: auto; width: 44px; padding: 0; font-size: 1.4rem; }
 #sample-canvas { margin: 0 auto; border-radius: 4px; }
 #sample-note { margin: 8px 0 0; font-size: 0.8rem; text-align: center; min-height: 3.4em; width: 0; min-width: 100%; }
@@ -333,6 +334,10 @@ tfoot td { font-weight: bold; border-bottom: 0; }
 
 /* モードをえらぶ */
 .mode-card h2 { margin: 0 0 12px; }
+.guide-row { display: flex; align-items: center; gap: 12px; }
+.guide-label { font-weight: bold; }
+.guide-row .segmented button { min-width: 72px; }
+.guide-note { margin: 6px 0 12px; font-size: 0.85rem; }
 .mode-btn {
   display: flex;
   flex-direction: column;

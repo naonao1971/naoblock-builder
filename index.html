@@ -101,6 +101,14 @@
     <div id="mode" class="modal" hidden>
       <div class="card mode-card" role="dialog" aria-label="モードをえらぶ">
         <h2>モードをえらぶ</h2>
+        <div class="guide-row">
+          <span class="guide-label">ガイド</span>
+          <div class="segmented" role="group" aria-label="ガイド">
+            <button id="guide-on" type="button" aria-pressed="false">あり</button>
+            <button id="guide-off" type="button" aria-pressed="true">なし</button>
+          </div>
+        </div>
+        <p class="guide-note muted">ガイドありは、置くブロックの形が盤面に薄く出ます（パズルの台紙のように）</p>
         <button id="mode-practice" type="button" class="mode-btn primary">
           <strong>れんしゅう</strong>
           <span>時間制限なし。5 秒迷うと、置く場所が光ります</span>
@@ -122,6 +130,7 @@
           <li>正しい場所に重なると、ブロックの縁が光ります。れんしゅうでは、5 秒迷うと置く場所が光ります</li>
           <li>ステージ 3 からはブロックが落ちてきます。正しい場所と向きに重なると、そのままはまります（▼ で速く落とせます）</li>
           <li>タイムアタックは、ステージごとに制限時間があります。時間切れになると、そのステージを最初からやり直します</li>
+          <li>ガイドありにすると、置くブロックの形が盤面に薄い色で出ます。タイムアタックのランキングは、ガイドあり・なしで別々です</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
         </ul>
         <div class="buttons">

@@ -16,6 +16,7 @@ import { buildPrintout } from './print.js';
 const PLATE_HEX = 'd9d6cf';
 
 const HELP_KEY = 'naoblock:help-seen-game';
+const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく）
 const HINT_MS = 5000; // れんしゅう：5 秒迷ったら正解の場所が光る
 const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
@@ -24,6 +25,7 @@ const TA_HINT_PENALTY_MS = 3000; // ヒント 1 回で +3 秒
 const PRACTICE_FALL_SLOWER = 2; // れんしゅうの落ちる速さはタイムアタックの半分
 
 const MODES = { practice: 'れんしゅう', timeattack: 'タイムアタック' };
+const modeLabel = (mode, guide) => `${MODES[mode]}${guide ? '・ガイドあり' : ''}`;
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,15 +80,15 @@ function clearSave(id, mode) {
   try { localStorage.removeItem(saveKey(id, mode)); } catch { /* 無視 */ }
 }
 
-function askResume(save, game, mode) {
+function askResume(save, game, mode, guide) {
   return new Promise((resolve) => {
     const d = $('resume');
     const done = save.done;
     $('resume-text').textContent = done
-      ? `${MODES[mode]}：この Noun は完成しています（${formatTime(save.elapsedMs)}）。`
+      ? `${modeLabel(mode, guide)}：この Noun は完成しています（${formatTime(save.elapsedMs)}）。`
       : mode === 'timeattack'
-        ? `タイムアタック：ステージ ${save.stage + 1} / ${game.stages.length} から続けられます（それまでのタイム ${formatTime(save.elapsedMs)}）。ステージの途中からではなく、ステージの最初からです。`
-        : `れんしゅう：途中まで組んであります（ステージ ${save.stage + 1} / ${game.stages.length}・ブロック ${game.placedCount} / ${game.totalBlocks}・${formatTime(save.elapsedMs)}）。`;
+        ? `${modeLabel(mode, guide)}：ステージ ${save.stage + 1} / ${game.stages.length} から続けられます（それまでのタイム ${formatTime(save.elapsedMs)}）。ステージの途中からではなく、ステージの最初からです。`
+        : `${modeLabel(mode, guide)}：途中まで組んであります（ステージ ${save.stage + 1} / ${game.stages.length}・ブロック ${game.placedCount} / ${game.totalBlocks}・${formatTime(save.elapsedMs)}）。`;
     $('resume-continue').textContent = done ? '完成図を見る' : '続きから';
     d.hidden = false;
     const finish = (v) => { d.hidden = true; resolve(v); };
@@ -114,14 +116,31 @@ function showHelp() {
 
 const anyModalOpen = () => ['help', 'resume', 'sample', 'mode'].some((m) => !$(m).hidden);
 
-// ---- モードをえらぶ（タイムアタックのボタンに、この端末のベストを出す） ----
+// ---- モードをえらぶ（ガイドあり／なしのスイッチ付き。タイムアタックのボタンに、この端末のベストを出す） ----
+
+function loadGuide() {
+  try { return localStorage.getItem(GUIDE_KEY) === '1'; } catch { return false; }
+}
 
 function chooseMode(id) {
   return new Promise((resolve) => {
-    const best = loadRanking(id)[0];
-    $('mode-best').textContent = best ? `この端末のベスト：${formatTime(best.totalMs)}` : 'まだ記録はありません';
+    let guide = loadGuide();
+    const sync = () => {
+      $('guide-on').setAttribute('aria-pressed', String(guide));
+      $('guide-off').setAttribute('aria-pressed', String(!guide));
+      const best = loadRanking(id, guide)[0];
+      $('mode-best').textContent = best ? `この端末のベスト（${guide ? 'ガイドあり' : 'ガイドなし'}）：${formatTime(best.totalMs)}` : `まだ記録はありません（${guide ? 'ガイドあり' : 'ガイドなし'}）`;
+    };
+    const setGuide = (v) => {
+      guide = v;
+      try { localStorage.setItem(GUIDE_KEY, v ? '1' : '0'); } catch { /* 保存できなければ次回は「なし」 */ }
+      sync();
+    };
+    $('guide-on').onclick = () => setGuide(true);
+    $('guide-off').onclick = () => setGuide(false);
+    sync();
     $('mode').hidden = false;
-    const pick = (m) => { $('mode').hidden = true; resolve(m); };
+    const pick = (m) => { $('mode').hidden = true; resolve({ mode: m, guide }); };
     $('mode-practice').onclick = () => pick('practice');
     $('mode-timeattack').onclick = () => pick('timeattack');
   });
@@ -206,15 +225,15 @@ function showFinish(id, result, { plan, partsData, steps, stages, onAgain }) {
   const ta = result.mode === 'timeattack';
   $('finish-title').textContent = `Noun ${id} 完成！`;
   const rankText = ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
-  $('finish-stats').textContent = `${MODES[result.mode]}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
+  $('finish-stats').textContent = `${modeLabel(result.mode, result.guide)}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
   renderResult($('finish-result'), {
-    mode: result.mode, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
-    ranking: ta ? (result.ranking || loadRanking(id)) : null, rank: result.rank ?? -1,
+    mode: result.mode, guide: result.guide, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
+    ranking: ta ? (result.ranking || loadRanking(id, result.guide)) : null, rank: result.rank ?? -1,
   });
   const canvas = $('finish-canvas');
   drawFinishImage(canvas, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX });
   $('save-image').onclick = () => downloadCanvas(canvas, `naoblock-noun${id}.png`);
-  $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs, result.mode), appUrl(id, location.href));
+  $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs, result.mode, result.guide), appUrl(id, location.href));
   renderRealParts($('real-parts'), plan, partsData);
   // 印刷用の組立図は、印刷するときに作る（Ctrl+P / ⌘P で印刷したときも）
   let printReady = false;
@@ -272,13 +291,15 @@ async function start(id) {
   drawMini();
 
   // ---- モードをえらぶ（毎回最初に） ----
-  const mode = await chooseMode(id);
+  const { mode, guide } = await chooseMode(id);
   const ta = mode === 'timeattack';
+  // 途中保存の置き場所：タイムアタックはガイドあり／なしでランキングが別なので、保存も分ける
+  const slot = ta && guide ? 'timeattack-guide' : mode;
 
-  let save = loadSave(id, mode, sig);
+  let save = loadSave(id, slot, sig);
   if (save && (save.done || save.stage > 0 || save.block > 0)) {
     const preview = new Game({ stages, layout: plan.layout, save });
-    if (!(await askResume(save, preview, mode))) { save = null; clearSave(id, mode); }
+    if (!(await askResume(save, preview, mode, guide))) { save = null; clearSave(id, slot); }
   } else {
     save = null;
   }
@@ -314,6 +335,7 @@ async function start(id) {
     pieces: plan.pieces,
     plateHex: PLATE_HEX,
     game,
+    guide,
     onTap: (cx, cy) => act(() => tap(cx, cy)),
   });
 
@@ -324,7 +346,7 @@ async function start(id) {
   const persist = () => {
     // タイムアタックは、ステージの最初の時点だけを残す（途中で閉じたらそのステージの最初から）
     const snap = game.snapshot();
-    writeSave(id, mode, {
+    writeSave(id, slot, {
       v: 1, sig, mode, ...snap, block: ta && !finished ? 0 : snap.block, done: finished,
       elapsedMs: Math.round(ta && !finished ? clock.stageStart : clock.now), stageStartMs: Math.round(clock.stageStart),
     });
@@ -347,7 +369,7 @@ async function start(id) {
       $('step-label').textContent = `ステージ ${game.stageIndex + 1}/${game.stages.length} ${where}${game.falling ? '・落ちてくる' : ''}`;
     }
     $('progress-text').textContent = `ブロック ${game.placedCount}/${game.totalBlocks}`;
-    $('mode-badge').textContent = MODES[mode];
+    $('mode-badge').textContent = MODES[mode]; // ガイドの有無は盤面で見えるので、バッジはモードだけ（幅が足りない）
     $('mode-badge').classList.toggle('ta', ta);
     $('progress-bar').style.width = `${(game.placedCount / game.totalBlocks) * 100}%`;
     drawBlockPreview($('next-canvas'), game.nextBlock);
@@ -381,13 +403,13 @@ async function start(id) {
     finished = true;
     const total = ta ? game.stageTimes.reduce((n, t) => n + (t || 0), 0) : clock.elapsed;
     clock.elapsed = total;
-    const ranked = ta ? recordRanking(id, total, game.stageTimes) : { list: null, rank: -1 };
+    const ranked = ta ? recordRanking(id, total, game.stageTimes, guide) : { list: null, rank: -1 };
     persist();
     updateHud();
     setTimeout(() => sound.complete(), 400);
     // 完成した盤面を少し見せてから完成画面へ
     setTimeout(() => showFinish(id, {
-      pieces: plan.pieces.length, elapsedMs: total, mode, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank,
+      pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank,
     }, { plan, partsData, steps, stages, onAgain: restart }), 1200);
   };
 
@@ -470,7 +492,7 @@ async function start(id) {
   };
 
   const restart = () => {
-    clearSave(id, mode);
+    clearSave(id, slot);
     game = new Game({ stages, layout: plan.layout });
     view.game = game;
     finished = false;
@@ -572,7 +594,7 @@ async function start(id) {
 
   updateHud();
   if (finished) {
-    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, stageTimes: save?.stageTimes || [] },
+    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, guide, stageTimes: save?.stageTimes || [] },
       { plan, partsData, steps, stages, onAgain: restart });
   } else {
     if (!helpSeen()) await showHelp();
