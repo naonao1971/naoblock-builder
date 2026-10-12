@@ -10,7 +10,7 @@ import { makePlan } from '../src/plan.js';
 import { tile, pieceCells } from '../src/tiling.js';
 import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
-import { partsList } from '../src/plan.js';
+import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
 
 const args = process.argv.slice(2);
@@ -98,11 +98,16 @@ const blocksAgain = buildBlocks(again.pieces, again.layout);
 const bv = verifyBlocks(plan.pieces, blocks, plan.layout);
 const sameBlocks = JSON.stringify(blocks) === JSON.stringify(blocksAgain);
 const stages = buildStages(blocks, plan.layout);
-const sameParts = JSON.stringify(partsList(plan.pieces)) === JSON.stringify(plan.parts);
+// ブロックの中身（標準パーツ）から部品リスト・買い物リストを作り直して、組み合わせる前と比べる
+const piecesFromBlocks = blocks.flatMap((b) => b.pieces).sort((a, b) => a - b).map((i) => plan.pieces[i]);
+const partsFromBlocks = partsList(piecesFromBlocks);
+const shopFromBlocks = shoppingList(partsFromBlocks, partsData, plan.layout.cols * plan.layout.rows);
+const sameParts = JSON.stringify(partsFromBlocks) === JSON.stringify(plan.parts)
+  && shopFromBlocks.total === plan.shopping.total && shopFromBlocks.bags === plan.shopping.bags;
 console.log(`  ${mark(bv.ok)}全パーツがちょうど 1 回ずつどれかのブロックに入っている／ブロックの中は同じ色／ステージをまたいでいない${bv.ok ? '' : `（${bv.errors.length} 件）`}`);
 for (const e of bv.errors.slice(0, 20)) console.log(`      ${e}`);
 console.log(`  ${mark(sameBlocks)}同じ入力で 2 回作ってブロックも同じ`);
-console.log(`  ${mark(sameParts)}部品リスト・買い物リストは標準パーツのまま（${plan.pieces.length} 個）`);
+console.log(`  ${mark(sameParts)}部品リスト・買い物リストの数字が組み合わせる前と同じ（ブロックの中身から作り直して ${piecesFromBlocks.length} 個・${shopFromBlocks.bags} 袋・${yen(shopFromBlocks.total)}）`);
 const orient = new Map();
 for (const b of blocks) { const n = orientationCount(b.cells); orient.set(n, (orient.get(n) || 0) + 1); }
 console.log(`  回したときの向きの数：${[...orient.entries()].sort((a, b) => a[0] - b[0]).map(([n, c]) => `${n} 通り ${c} 個`).join('、')}`);
