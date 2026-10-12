@@ -11,6 +11,44 @@ function rgb(hex, amount = 0, alpha = 1) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// ---- 描画の部品（盤面と完成画面で共通。s は 1 マスの実ピクセル）----
+
+function drawStud(ctx, s, x, y, hex, alpha = 1) {
+  const cx = (x + 0.5) * s, cy = (y + 0.5) * s, r = s * 0.31;
+  ctx.beginPath();
+  ctx.arc(cx + s * 0.04, cy + s * 0.06, r, 0, Math.PI * 2);
+  ctx.fillStyle = rgb(hex, -45, alpha);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = rgb(hex, 18, alpha);
+  ctx.fill();
+}
+
+function drawPiece(ctx, s, p, { alpha = 1, studs = true, dx = 0, dy = 0 } = {}) {
+  const hex = colorById(p.color).hex;
+  ctx.save();
+  ctx.translate(dx, dy);
+  ctx.fillStyle = rgb(hex, 0, alpha);
+  ctx.fillRect(p.x * s, p.y * s, p.w * s, p.h * s);
+  if (studs) {
+    for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) drawStud(ctx, s, i, j, hex, alpha);
+  }
+  ctx.strokeStyle = `rgba(0,0,0,${0.45 * alpha})`;
+  ctx.lineWidth = Math.max(1, s * 0.06);
+  const lw = ctx.lineWidth / 2;
+  ctx.strokeRect(p.x * s + lw, p.y * s + lw, p.w * s - lw * 2, p.h * s - lw * 2);
+  ctx.restore();
+}
+
+// 完成した盤面（光や薄い表示のない、きれいな絵）を (0, 0) から描く
+export function drawFinishedBoard(ctx, { layout, pieces, plateHex, scale }) {
+  ctx.fillStyle = `#${plateHex}`;
+  ctx.fillRect(0, 0, layout.width * scale, layout.height * scale);
+  for (let y = 0; y < layout.height; y++) for (let x = 0; x < layout.width; x++) drawStud(ctx, scale, x, y, plateHex);
+  for (const p of pieces) drawPiece(ctx, scale, p);
+}
+
 export class Board {
   // container: スクロールする枠、canvas: その中の canvas
   constructor(container, canvas, { layout, pieces, plateHex, onTap }) {
@@ -141,33 +179,11 @@ export class Board {
   // ---- 描画 ----
 
   drawStud(ctx, x, y, hex, alpha = 1) {
-    const s = this.scale;
-    const cx = (x + 0.5) * s, cy = (y + 0.5) * s, r = s * 0.31;
-    ctx.beginPath();
-    ctx.arc(cx + s * 0.04, cy + s * 0.06, r, 0, Math.PI * 2);
-    ctx.fillStyle = rgb(hex, -45, alpha);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = rgb(hex, 18, alpha);
-    ctx.fill();
+    drawStud(ctx, this.scale, x, y, hex, alpha);
   }
 
-  drawPiece(ctx, p, { alpha = 1, studs = true, dx = 0, dy = 0 } = {}) {
-    const s = this.scale;
-    const hex = colorById(p.color).hex;
-    ctx.save();
-    ctx.translate(dx, dy);
-    ctx.fillStyle = rgb(hex, 0, alpha);
-    ctx.fillRect(p.x * s, p.y * s, p.w * s, p.h * s);
-    if (studs) {
-      for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) this.drawStud(ctx, i, j, hex, alpha);
-    }
-    ctx.strokeStyle = `rgba(0,0,0,${0.45 * alpha})`;
-    ctx.lineWidth = Math.max(1, s * 0.06);
-    const lw = ctx.lineWidth / 2;
-    ctx.strokeRect(p.x * s + lw, p.y * s + lw, p.w * s - lw * 2, p.h * s - lw * 2);
-    ctx.restore();
+  drawPiece(ctx, p, opts) {
+    drawPiece(ctx, this.scale, p, opts);
   }
 
   renderLayer() {
