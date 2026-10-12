@@ -160,9 +160,9 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 .next-label { font-weight: bold; }
 #next-canvas { border-radius: 2px; }
 
-.hud-bottom .buttons { display: flex; gap: 8px; }
-.hud-bottom .buttons #auto { flex: 1; }
-.hud-bottom .buttons button:not(#auto) { width: 44px; padding: 0; font-size: 1.1rem; }
+.hud-bottom .buttons { display: flex; gap: 6px; }
+.hud-bottom .buttons #auto { flex: 1; min-width: 0; padding: 8px; font-size: 0.9rem; white-space: nowrap; }
+.hud-bottom .buttons button:not(#auto) { flex: none; width: 42px; padding: 0; font-size: 1.1rem; }
 .hud-bottom .legal { margin: 6px 0 0; font-size: 0.65rem; line-height: 1.4; }
 
 /* スマホ横向き：上下を詰める */
