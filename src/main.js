@@ -8,7 +8,8 @@ import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
-import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts } from './finish.js';
+import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
+import { loadRanking, recordRanking } from './ranking.js';
 import { buildPrintout } from './print.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
@@ -113,25 +114,11 @@ function showHelp() {
 
 const anyModalOpen = () => ['help', 'resume', 'sample', 'mode'].some((m) => !$(m).hidden);
 
-// ---- モードと、この端末のベスト記録（タイムアタック、Noun の番号ごと） ----
-
-const bestKey = (id) => `naoblock:best:v1:noun:${id}:timeattack`;
-
-function loadBest(id) {
-  try { return JSON.parse(localStorage.getItem(bestKey(id)) || 'null'); } catch { return null; }
-}
-
-// ベストを更新したら true
-function saveBest(id, totalMs) {
-  const best = loadBest(id);
-  if (best && best.totalMs <= totalMs) return false;
-  try { localStorage.setItem(bestKey(id), JSON.stringify({ totalMs: Math.round(totalMs), at: Date.now() })); } catch { /* 無視 */ }
-  return true;
-}
+// ---- モードをえらぶ（タイムアタックのボタンに、この端末のベストを出す） ----
 
 function chooseMode(id) {
   return new Promise((resolve) => {
-    const best = loadBest(id);
+    const best = loadRanking(id)[0];
     $('mode-best').textContent = best ? `この端末のベスト：${formatTime(best.totalMs)}` : 'まだ記録はありません';
     $('mode').hidden = false;
     const pick = (m) => { $('mode').hidden = true; resolve(m); };
@@ -215,15 +202,19 @@ function initSample() {
 }
 
 // 完成画面
-function showFinish(id, result, { plan, partsData, steps, onAgain }) {
+function showFinish(id, result, { plan, partsData, steps, stages, onAgain }) {
+  const ta = result.mode === 'timeattack';
   $('finish-title').textContent = `Noun ${id} 完成！`;
-  $('finish-stats').textContent = result.mode === 'timeattack'
-    ? `タイムアタック ${formatTime(result.elapsedMs)}${result.newBest ? '（ベスト更新！）' : ''}・使ったパーツ ${result.pieces}個`
-    : `使ったパーツ ${result.pieces}個・かかった時間 ${formatTime(result.elapsedMs)}`;
+  const rankText = ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
+  $('finish-stats').textContent = `${MODES[result.mode]}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
+  renderResult($('finish-result'), {
+    mode: result.mode, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
+    ranking: ta ? (result.ranking || loadRanking(id)) : null, rank: result.rank ?? -1,
+  });
   const canvas = $('finish-canvas');
   drawFinishImage(canvas, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX });
   $('save-image').onclick = () => downloadCanvas(canvas, `naoblock-noun${id}.png`);
-  $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs), appUrl(id, location.href));
+  $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs, result.mode), appUrl(id, location.href));
   renderRealParts($('real-parts'), plan, partsData);
   // 印刷用の組立図は、印刷するときに作る（Ctrl+P / ⌘P で印刷したときも）
   let printReady = false;
@@ -390,13 +381,14 @@ async function start(id) {
     finished = true;
     const total = ta ? game.stageTimes.reduce((n, t) => n + (t || 0), 0) : clock.elapsed;
     clock.elapsed = total;
-    const newBest = ta ? saveBest(id, total) : false;
+    const ranked = ta ? recordRanking(id, total, game.stageTimes) : { list: null, rank: -1 };
     persist();
     updateHud();
     setTimeout(() => sound.complete(), 400);
     // 完成した盤面を少し見せてから完成画面へ
-    setTimeout(() => showFinish(id, { pieces: plan.pieces.length, elapsedMs: total, mode, newBest },
-      { plan, partsData, steps, onAgain: restart }), 1200);
+    setTimeout(() => showFinish(id, {
+      pieces: plan.pieces.length, elapsedMs: total, mode, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank,
+    }, { plan, partsData, steps, stages, onAgain: restart }), 1200);
   };
 
   const afterPlaced = (block, res) => {
@@ -580,7 +572,8 @@ async function start(id) {
 
   updateHud();
   if (finished) {
-    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode }, { plan, partsData, steps, onAgain: restart });
+    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, stageTimes: save?.stageTimes || [] },
+      { plan, partsData, steps, stages, onAgain: restart });
   } else {
     if (!helpSeen()) await showHelp();
     if (ta) clock.start(); // タイムアタックは、ここから数える

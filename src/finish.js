@@ -10,13 +10,22 @@ export function formatTime(ms) {
   return `${Math.floor(sec / 60)}分${sec % 60}秒`;
 }
 
+// 結果の表・ランキング用（0.1 秒まで。「12.3秒」「1分05.3秒」）
+export function formatTimeFine(ms) {
+  const tenths = Math.round(ms / 100);
+  const sec = Math.floor(tenths / 10), t = tenths % 10;
+  if (sec < 60) return `${sec}.${t}秒`;
+  return `${Math.floor(sec / 60)}分${String(sec % 60).padStart(2, '0')}.${t}秒`;
+}
+
 // シェアの文面用（「12分」。1 分未満は「45秒」）
 export function formatTimeShort(ms) {
   const sec = Math.floor(ms / 1000);
   return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分`;
 }
 
-export function shareText(id, pieces, elapsedMs) {
+export function shareText(id, pieces, elapsedMs, mode = 'practice') {
+  if (mode === 'timeattack') return `Noun ${id} をナオブロックで組み立てた！ タイムアタック ${formatTime(elapsedMs)} #naoblock #Nouns`;
   return `Noun ${id} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} #naoblock #Nouns`;
 }
 
@@ -136,4 +145,37 @@ export function renderRealParts(container, plan, partsData) {
     el('h3', {}, '買い物リスト'),
     ...shoppingTable(plan, partsData),
   );
+}
+
+const formatDate = (ms) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+};
+
+// 結果：モード・合計タイム・ステージごとのタイム。タイムアタックはランキング（この端末の上位 5 件）も
+// stages は src/stages.js の buildStages の結果（ステージ名とブロック数に使う）
+export function renderResult(container, { mode, totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
+  const ta = mode === 'timeattack';
+  const rows = stages.map((st, i) => {
+    const t = stageTimes[i];
+    const time = st.blocks.length === 0 ? '（ブロックなし）' : t == null ? '—' : formatTimeFine(t);
+    return el('tr', {}, el('td', {}, `ステージ ${i + 1}　${st.label}`), el('td', { class: 'num' }, time));
+  });
+  const parts = [
+    el('h3', {}, ta ? 'タイムアタックの結果' : 'れんしゅうの結果'),
+    el('table', { class: 'result-table' },
+      el('tbody', {}, rows),
+      el('tfoot', {}, el('tr', {}, el('td', {}, '合計'), el('td', { class: 'num' }, formatTimeFine(totalMs))))),
+  ];
+  if (!ta) parts.push(el('p', { class: 'note' }, 'れんしゅうのタイムは、最初の操作からの時間です（ステージクリアの表示の間も入ります）。'));
+  if (ta && ranking) {
+    parts.push(el('h3', {}, 'ランキング（この端末・この Noun）'));
+    parts.push(el('ol', { class: 'ranking' }, ranking.map((r, i) => el('li', { class: i === rank ? 'me' : '' },
+      el('span', { class: 'rank-no' }, `${i + 1}位`),
+      el('span', { class: 'rank-time' }, formatTimeFine(r.totalMs)),
+      el('span', { class: 'rank-date' }, i === rank ? 'いま' : formatDate(r.at))))));
+    if (rank < 0) parts.push(el('p', { class: 'note' }, `今回の記録は ${ranking.length} 位までに入りませんでした。`));
+  }
+  container.replaceChildren(...parts);
 }

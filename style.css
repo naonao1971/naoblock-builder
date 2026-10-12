@@ -349,3 +349,14 @@ tfoot td { font-weight: bold; border-bottom: 0; }
 .mode-best { font-weight: bold; }
 .tools .hint { font-size: 1.1rem; }
 .dpad .pad:disabled { opacity: 0.3; }
+
+/* 完成画面：結果とランキング */
+.finish-result { margin: 16px 0 4px; }
+.finish-result h3 { margin: 14px 0 6px; font-size: 1rem; border-bottom: 2px solid var(--line); padding-bottom: 4px; }
+.result-table td { font-variant-numeric: tabular-nums; }
+.ranking { list-style: none; padding: 0; margin: 0; }
+.ranking li { display: flex; gap: 12px; align-items: baseline; padding: 6px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.ranking li.me { background: #fff4e5; font-weight: bold; border-radius: 6px; }
+.ranking .rank-no { width: 2.5em; }
+.ranking .rank-time { flex: 1; }
+.ranking .rank-date { color: var(--muted); font-size: 0.85rem; }
