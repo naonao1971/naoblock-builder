@@ -8,6 +8,7 @@ import { Play, loadSave } from './play.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts } from './finish.js';
+import { buildPrintout } from './print.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -172,7 +173,7 @@ function updateHud(info) {
 }
 
 // 完成画面
-function showFinish(id, result, { plan, partsData, play }) {
+function showFinish(id, result, { plan, partsData, steps, play }) {
   $('finish-title').textContent = `Noun ${id} 完成！`;
   $('finish-stats').textContent = `使ったパーツ ${result.pieces}個・かかった時間 ${formatTime(result.elapsedMs)}`;
   const canvas = $('finish-canvas');
@@ -180,6 +181,15 @@ function showFinish(id, result, { plan, partsData, play }) {
   $('save-image').onclick = () => downloadCanvas(canvas, `naoblock-noun${id}.png`);
   $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs), appUrl(id, location.href));
   renderRealParts($('real-parts'), plan, partsData);
+  // 印刷用の組立図は、印刷するときに作る（Ctrl+P / ⌘P で印刷したときも）
+  let printReady = false;
+  const preparePrint = () => {
+    if (printReady) return;
+    buildPrintout($('print-root'), { id, plan, partsData, steps, plateHex: PLATE_HEX, url: appUrl(id, location.href) });
+    printReady = true;
+  };
+  window.onbeforeprint = () => { if (!$('view-finish').hidden) preparePrint(); };
+  $('print-guide').onclick = () => { preparePrint(); window.print(); };
   $('finish-again').onclick = () => {
     document.title = `Noun ${id} を組み立てる｜ナオブロック`;
     show('play');
@@ -245,11 +255,11 @@ async function start(id) {
       },
       onStepDone: (si) => toast(`ステップ ${si + 1} 完了！`),
       // 完成した盤面を少し見せてから完成画面へ
-      onComplete: (result) => setTimeout(() => showFinish(id, result, { plan, partsData, play }), 700),
+      onComplete: (result) => setTimeout(() => showFinish(id, result, { plan, partsData, steps, play }), 700),
     },
   });
   if (!save) play.restart(); // 「最初から」を選んだら保存も消す
-  if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, { plan, partsData, play });
+  if (play.done) showFinish(id, { pieces: play.total, elapsedMs: play.elapsedMs }, { plan, partsData, steps, play });
   else if (!helpSeen()) showHelp();
 
   $('auto').onclick = () => (play.auto ? play.stopAuto() : play.startAuto());
