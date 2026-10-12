@@ -15,11 +15,12 @@ export function originalPixels(noun, bgHex, width = 40, height = 40) {
 }
 
 // ドットをくっきり描く：1 ドットを整数の実ピクセルにして、CSS の大きさをそれに合わせる
+// （切り捨てなので、描いた絵が cssSize を超えることはない）
 // frame（{ x, y, w, h }、ドット単位）があれば細い枠を重ねる
 export function drawPixels(canvas, pixels, cssSize, frame = null) {
   const h = pixels.length, w = pixels[0].length;
   const dpr = window.devicePixelRatio || 1;
-  const dot = Math.max(1, Math.round((cssSize * dpr) / Math.max(w, h)));
+  const dot = Math.max(1, Math.floor((cssSize * dpr) / Math.max(w, h)));
   canvas.width = w * dot;
   canvas.height = h * dot;
   canvas.style.width = `${(w * dot) / dpr}px`;

@@ -114,8 +114,25 @@ function drawMini() {
   if (sample.completed) drawPixels($('mini-canvas'), sample.completed, miniSize(), sample.frame);
 }
 
+// 絵の大きさは、カードの中の実際の幅と、画面に収まる高さの両方を超えないように決める
+function sampleSize() {
+  const card = document.querySelector('.sample-card');
+  const cs = getComputedStyle(card);
+  const innerW = card.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const modal = $('sample');
+  const ms = getComputedStyle(modal);
+  const outer = (el) => {
+    const st = getComputedStyle(el);
+    return el.offsetHeight + parseFloat(st.marginTop) + parseFloat(st.marginBottom);
+  };
+  const innerH = modal.clientHeight - parseFloat(ms.paddingTop) - parseFloat(ms.paddingBottom)
+    - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    - outer(document.querySelector('.sample-head')) - outer($('sample-note'));
+  return Math.max(80, Math.floor(Math.min(innerW, innerH)));
+}
+
 function drawSample() {
-  const size = Math.min(window.innerWidth - 72, window.innerHeight - 190, 480);
+  const size = sampleSize();
   const original = sample.mode === 'original';
   drawPixels($('sample-canvas'), original ? sample.original : sample.completed, size);
   $('sample-completed').setAttribute('aria-selected', String(!original));
@@ -127,7 +144,7 @@ function drawSample() {
 
 function initSample() {
   const modal = $('sample');
-  $('mini').onclick = () => { sample.mode = 'completed'; drawSample(); modal.hidden = false; };
+  $('mini').onclick = () => { sample.mode = 'completed'; modal.hidden = false; drawSample(); };
   $('sample-completed').onclick = () => { sample.mode = 'completed'; drawSample(); };
   $('sample-original').onclick = () => { sample.mode = 'original'; drawSample(); };
   $('sample-close').onclick = () => { modal.hidden = true; };
