@@ -13,10 +13,13 @@ import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
 import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
 
-// ドット絵の一覧（data/samples/ のファイル名・拡張子なし → 画面に出す名前）
+// ドット絵の一覧（URL に出る名前 → 画像と画面に出す名前）。
+// 絵を足すときは、画像を data/samples/ に置いて、ここに 1 行足すだけ（スタート画面のボタンも自動でできる）
 export const PICTURES = {
-  1: { file: 'data/samples/1.png', label: 'ドット絵 1' },
+  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶' },
 };
+// 古い URL の名前 → 今の名前（?pic=1・?sample=1 のため）
+const PICTURE_ALIASES = { 1: 'chibi-sakuya' };
 
 export function nounSubject(n) {
   const id = String(Number(n));
@@ -37,8 +40,9 @@ export function nounSubject(n) {
 }
 
 // ドット絵：40×40 いっぱいに縮める
-export function pictureSubject(name) {
-  const pic = PICTURES[name];
+export function pictureSubject(given) {
+  const name = Object.hasOwn(PICTURES, given) ? given : Object.hasOwn(PICTURE_ALIASES, given) ? PICTURE_ALIASES[given] : null;
+  const pic = name && PICTURES[name];
   if (!pic) return null;
   return {
     kind: 'picture',
@@ -54,7 +58,7 @@ export function pictureSubject(name) {
 }
 
 // URL（location.search）から題材を作る。当てはまらなければ null（スタート画面）
-// ?pic=<名前>、?sample=<名前>（PR #16 の確認用 URL のため残す）、?noun=<番号>
+// ?pic=<名前>、?sample=<名前>（PR #16 の確認用 URL のため残す）、?noun=<番号>。古い名前（1）は今の名前に読み替える
 export function subjectFromUrl(search) {
   const params = new URLSearchParams(search);
   const pic = params.get('pic') ?? params.get('sample');

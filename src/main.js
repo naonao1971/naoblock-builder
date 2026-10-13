@@ -11,7 +11,7 @@ import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { buildPrintout } from './print.js';
-import { subjectFromUrl, saveKey } from './subjects.js';
+import { subjectFromUrl, saveKey, PICTURES } from './subjects.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -608,6 +608,21 @@ function showVersion() {
   }
 }
 
+// スタート画面の「ドット絵で遊ぶ」：PICTURES から絵のボタンを作る
+function renderPictureList() {
+  const list = $('picture-list');
+  list.replaceChildren(...Object.entries(PICTURES).map(([name, pic]) => {
+    const a = document.createElement('a');
+    a.className = 'picture-card';
+    a.href = `?pic=${encodeURIComponent(name)}`;
+    const img = document.createElement('img');
+    img.src = pic.file;
+    img.alt = '';
+    a.append(img, pic.label);
+    return a;
+  }));
+}
+
 function init() {
   showVersion();
   const muteBtn = $('mute');
@@ -626,6 +641,7 @@ function init() {
   if (subject) {
     start(subject);
   } else {
+    renderPictureList();
     show('start');
   }
 }

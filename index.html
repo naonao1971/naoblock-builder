@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja" data-version="18">
+<html lang="ja" data-version="20">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,12 +12,15 @@
 <body data-view="start">
   <section id="view-start" class="page">
     <h1>ナオブロック <small>naoblock</small></h1>
-    <p class="lead">Nouns の番号を入れると、40×40 のドット絵になるブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
+    <p class="lead">Nouns の番号を入れるか、ドット絵をえらぶと、40×40 のブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
     <form class="start-form" method="get" action="">
       <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
       <button type="submit" class="primary">組み立てる</button>
     </form>
-    <p class="try-picture"><a href="?pic=1">ドット絵で遊ぶ</a></p>
+    <section class="pictures" aria-labelledby="pictures-title">
+      <h2 id="pictures-title">ドット絵で遊ぶ</h2>
+      <div id="picture-list" class="picture-list"></div>
+    </section>
     <footer class="legal">
       <p>Nouns は CC0 です。</p>
       <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
