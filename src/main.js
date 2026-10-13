@@ -1,6 +1,7 @@
 // 画面の組み立て（取得・画面の切り替え・ボタン・キーボード）
 import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { makePlan } from './plan.js';
+import { VERSION } from './version.js';
 import { buildSteps } from './steps.js';
 import { buildBlocks } from './pieces.js';
 import { buildStages } from './stages.js';
@@ -599,7 +600,19 @@ async function start(id) {
   }
 }
 
+// 版の番号を画面のすみに出す。index.html と食い違ったら、古いファイルが残っている
+function showVersion() {
+  const page = document.documentElement.dataset.version;
+  const stale = page !== VERSION;
+  const text = stale ? `v${VERSION}（ページは v${page}：古いファイルが残っています。再読み込みしてください）` : `v${VERSION}`;
+  for (const el of document.querySelectorAll('.version')) {
+    el.textContent = text;
+    el.classList.toggle('stale', stale);
+  }
+}
+
 function init() {
+  showVersion();
   const muteBtn = $('mute');
   const syncMute = () => {
     muteBtn.textContent = sound.isMuted() ? '🔇' : '🔊';
