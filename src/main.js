@@ -1,5 +1,4 @@
 // 画面の組み立て（取得・画面の切り替え・ボタン・キーボード）
-import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { makePlan } from './plan.js';
 import { VERSION } from './version.js';
 import { buildSteps } from './steps.js';
@@ -9,10 +8,10 @@ import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
-import { formatTime, shareText, appUrl, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
+import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { buildPrintout } from './print.js';
-import { loadPictureGrid, SAMPLE_PICTURES } from './picture.js';
+import { subjectFromUrl, saveKey } from './subjects.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -55,9 +54,7 @@ function toast(text, ms = 1100) {
   toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
 
-// ---- 途中保存（れんしゅうだけ。Noun の番号とモードごと） ----
-
-const saveKey = (id, mode) => `naoblock:game:v1:noun:${id}:${mode}`;
+// ---- 途中保存（題材とモードごと。名前は src/subjects.js の saveKey） ----
 
 // ブロックの分け方が変わったら古い保存は使わない
 function signature(stages) {
@@ -67,24 +64,19 @@ function signature(stages) {
   return (h >>> 0).toString(16);
 }
 
-// お試しの絵（?sample=）は途中保存・ランキング・シェアなし
-let trial = false;
-
-function loadSave(id, mode, sig) {
-  if (trial) return null;
+function loadSave(subject, mode, sig) {
   try {
-    const save = JSON.parse(localStorage.getItem(saveKey(id, mode)) || 'null');
+    const save = JSON.parse(localStorage.getItem(saveKey(subject, mode)) || 'null');
     return save && save.sig === sig ? save : null;
   } catch { return null; }
 }
 
-function writeSave(id, mode, data) {
-  if (trial) return;
-  try { localStorage.setItem(saveKey(id, mode), JSON.stringify(data)); } catch { /* 保存できない環境では途中保存なし */ }
+function writeSave(subject, mode, data) {
+  try { localStorage.setItem(saveKey(subject, mode), JSON.stringify(data)); } catch { /* 保存できない環境では途中保存なし */ }
 }
 
-function clearSave(id, mode) {
-  try { localStorage.removeItem(saveKey(id, mode)); } catch { /* 無視 */ }
+function clearSave(subject, mode) {
+  try { localStorage.removeItem(saveKey(subject, mode)); } catch { /* 無視 */ }
 }
 
 function askResume(save, game, mode, guide) {
@@ -129,14 +121,13 @@ function loadGuide() {
   try { return localStorage.getItem(GUIDE_KEY) === '1'; } catch { return false; }
 }
 
-function chooseMode(id) {
+function chooseMode(subject) {
   return new Promise((resolve) => {
     let guide = loadGuide();
     const sync = () => {
       $('guide-on').setAttribute('aria-pressed', String(guide));
       $('guide-off').setAttribute('aria-pressed', String(!guide));
-      const best = loadRanking(id, guide)[0];
-      $('mode-best').hidden = trial;
+      const best = loadRanking(subject, guide)[0];
       $('mode-best').textContent = best ? `この端末のベスト（${guide ? 'ガイドあり' : 'ガイドなし'}）：${formatTime(best.totalMs)}` : `まだ記録はありません（${guide ? 'ガイドあり' : 'ガイドなし'}）`;
     };
     const setGuide = (v) => {
@@ -156,7 +147,7 @@ function chooseMode(id) {
 
 // ---- お手本の絵 ----
 
-const sample = { completed: null, original: null, frame: null, mode: 'completed' };
+const sample = { completed: null, original: null, note: '', frame: null, mode: 'completed' };
 
 const landscapeQuery = '(max-height: 500px) and (orientation: landscape)';
 
@@ -211,7 +202,7 @@ function drawSample() {
   $('sample-completed').setAttribute('aria-selected', String(!original));
   $('sample-original').setAttribute('aria-selected', String(original));
   $('sample-note').textContent = original
-    ? (trial ? '元絵：お試しの絵の色（40×40 に縮めたもの）' : '元絵：Nouns の本来の色と背景色')
+    ? sample.note
     : '完成図：ブロックの色に置き換えたもの（背景はプレートの色）';
 }
 
@@ -229,27 +220,26 @@ function initSample() {
 }
 
 // 完成画面
-function showFinish(id, result, { label, plan, partsData, steps, stages, onAgain }) {
+function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }) {
+  const { label } = subject;
   const ta = result.mode === 'timeattack';
   $('finish-title').textContent = `${label} 完成！`;
   const rankText = ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
   $('finish-stats').textContent = `${modeLabel(result.mode, result.guide)}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
   renderResult($('finish-result'), {
-    mode: result.mode, guide: result.guide, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
-    ranking: ta && !trial ? (result.ranking || loadRanking(id, result.guide)) : null, rank: result.rank ?? -1,
+    mode: result.mode, guide: result.guide, scope: subject.scope, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
+    ranking: ta ? (result.ranking || loadRanking(subject, result.guide)) : null, rank: result.rank ?? -1,
   });
   const canvas = $('finish-canvas');
   drawFinishImage(canvas, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX });
-  $('save-image').onclick = () => downloadCanvas(canvas, `naoblock-${trial ? id : `noun${id}`}.png`);
-  $('share-x').hidden = trial;
-  $('share-note').hidden = trial;
-  if (!trial) $('share-x').href = shareIntentUrl(shareText(id, result.pieces, result.elapsedMs, result.mode, result.guide), appUrl(id, location.href));
+  $('save-image').onclick = () => downloadCanvas(canvas, subject.fileName);
+  $('share-x').href = shareIntentUrl(subject.shareText(result), subject.url(location.href));
   renderRealParts($('real-parts'), plan, partsData);
   // 印刷用の組立図は、印刷するときに作る（Ctrl+P / ⌘P で印刷したときも）
   let printReady = false;
   const preparePrint = () => {
     if (printReady) return;
-    buildPrintout($('print-root'), { label, plan, partsData, steps, plateHex: PLATE_HEX, url: trial ? location.href : appUrl(id, location.href) });
+    buildPrintout($('print-root'), { label, plan, partsData, steps, plateHex: PLATE_HEX, url: subject.url(location.href) });
     printReady = true;
   };
   window.onbeforeprint = () => { if (!$('view-finish').hidden) preparePrint(); };
@@ -266,26 +256,15 @@ function showFinish(id, result, { label, plan, partsData, steps, stages, onAgain
 
 // ---- 遊ぶ画面 ----
 
-// Noun の番号から絵を読む
-async function loadNoun(id) {
-  const [seed, imageData] = await Promise.all([fetchSeed(id), fetchImageData()]);
-  return { noun: decodeNoun(seed, imageData), bgHex: imageData.bgcolors[seed.background] ?? imageData.bgcolors[0] };
-}
-
-// お試しの絵（画像）を読む：40×40 いっぱいに縮める
-async function loadSample(n) {
-  const { grid, bgHex } = await loadPictureGrid(SAMPLE_PICTURES[n].file);
-  return { noun: grid, bgHex };
-}
-
-// subject: { id（保存・ランキングの名前）, label（画面に出す名前）, load（絵を読む） }
-async function start({ id, label, load }) {
+// subject：src/subjects.js の題材
+async function start(subject) {
+  const { label } = subject;
   show('loading');
   $('loading-text').textContent = `${label} を読み込み中…`;
   let noun, partsData, bgHex;
   try {
-    const [pic, pd] = await Promise.all([load(), fetch('data/parts.json').then((r) => r.json())]);
-    ({ noun, bgHex } = pic);
+    const [pic, pd] = await Promise.all([subject.load(), fetch('data/parts.json').then((r) => r.json())]);
+    ({ grid: noun, bgHex } = pic);
     partsData = pd;
   } catch (e) {
     console.error(e);
@@ -303,21 +282,22 @@ async function start({ id, label, load }) {
 
   sample.completed = completedPixels(plan.board, PLATE_HEX);
   sample.original = originalPixels(noun, bgHex, plan.layout.width, plan.layout.height);
+  sample.note = subject.originalNote;
   initSample();
 
   show('play');
   drawMini();
 
   // ---- モードをえらぶ（毎回最初に） ----
-  const { mode, guide } = await chooseMode(id);
+  const { mode, guide } = await chooseMode(subject);
   const ta = mode === 'timeattack';
   // 途中保存の置き場所：タイムアタックはガイドあり／なしでランキングが別なので、保存も分ける
   const slot = ta && guide ? 'timeattack-guide' : mode;
 
-  let save = loadSave(id, slot, sig);
+  let save = loadSave(subject, slot, sig);
   if (save && (save.done || save.stage > 0 || save.block > 0)) {
     const preview = new Game({ stages, layout: plan.layout, save });
-    if (!(await askResume(save, preview, mode, guide))) { save = null; clearSave(id, slot); }
+    if (!(await askResume(save, preview, mode, guide))) { save = null; clearSave(subject, slot); }
   } else {
     save = null;
   }
@@ -364,7 +344,7 @@ async function start({ id, label, load }) {
   const persist = () => {
     // タイムアタックは、ステージの最初の時点だけを残す（途中で閉じたらそのステージの最初から）
     const snap = game.snapshot();
-    writeSave(id, slot, {
+    writeSave(subject, slot, {
       v: 1, sig, mode, ...snap, block: ta && !finished ? 0 : snap.block, done: finished,
       elapsedMs: Math.round(ta && !finished ? clock.stageStart : clock.now), stageStartMs: Math.round(clock.stageStart),
     });
@@ -421,14 +401,14 @@ async function start({ id, label, load }) {
     finished = true;
     const total = ta ? game.stageTimes.reduce((n, t) => n + (t || 0), 0) : clock.elapsed;
     clock.elapsed = total;
-    const ranked = ta && !trial ? recordRanking(id, total, game.stageTimes, guide) : { list: null, rank: -1 };
+    const ranked = ta ? recordRanking(subject, total, game.stageTimes, guide) : { list: null, rank: -1 };
     persist();
     updateHud();
     setTimeout(() => sound.complete(), 400);
     // 完成した盤面を少し見せてから完成画面へ
-    setTimeout(() => showFinish(id, {
+    setTimeout(() => showFinish(subject, {
       pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank,
-    }, { label, plan, partsData, steps, stages, onAgain: restart }), 1200);
+    }, { plan, partsData, steps, stages, onAgain: restart }), 1200);
   };
 
   const afterPlaced = (block, res) => {
@@ -507,7 +487,7 @@ async function start({ id, label, load }) {
   };
 
   const restart = () => {
-    clearSave(id, slot);
+    clearSave(subject, slot);
     game = new Game({ stages, layout: plan.layout });
     view.game = game;
     finished = false;
@@ -609,8 +589,8 @@ async function start({ id, label, load }) {
 
   updateHud();
   if (finished) {
-    showFinish(id, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, guide, stageTimes: save?.stageTimes || [] },
-      { label, plan, partsData, steps, stages, onAgain: restart });
+    showFinish(subject, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, guide, stageTimes: save?.stageTimes || [] },
+      { plan, partsData, steps, stages, onAgain: restart });
   } else {
     if (!helpSeen()) await showHelp();
     if (ta) clock.start(); // タイムアタックは、ここから数える
@@ -642,15 +622,9 @@ function init() {
   $('loading-retry').onclick = () => location.reload();
   $('help-open').onclick = () => showHelp();
 
-  const params = new URLSearchParams(location.search);
-  const id = params.get('noun');
-  const pic = params.get('sample');
-  if (pic != null && SAMPLE_PICTURES[pic]) {
-    trial = true;
-    start({ id: `sample${pic}`, label: SAMPLE_PICTURES[pic].label, load: () => loadSample(pic) });
-  } else if (id != null && /^\d+$/.test(id)) {
-    const n = String(Number(id));
-    start({ id: n, label: `Noun ${n}`, load: () => loadNoun(n) });
+  const subject = subjectFromUrl(location.search);
+  if (subject) {
+    start(subject);
   } else {
     show('start');
   }

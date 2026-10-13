@@ -24,18 +24,28 @@ export function formatTimeShort(ms) {
   return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分`;
 }
 
+// シェアの文面（name：絵の名前、tags：ハッシュタグ）
+export function shareTextFor(name, tags, pieces, elapsedMs, mode = 'practice', guide = false) {
+  if (mode === 'timeattack') return `${name} をナオブロックで組み立てた！ タイムアタック${guide ? '（ガイドあり）' : ''} ${formatTime(elapsedMs)} ${tags}`;
+  return `${name} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} ${tags}`;
+}
+
 export function shareText(id, pieces, elapsedMs, mode = 'practice', guide = false) {
-  if (mode === 'timeattack') return `Noun ${id} をナオブロックで組み立てた！ タイムアタック${guide ? '（ガイドあり）' : ''} ${formatTime(elapsedMs)} #naoblock #Nouns`;
-  return `Noun ${id} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} #naoblock #Nouns`;
+  return shareTextFor(`Noun ${id}`, '#naoblock #Nouns', pieces, elapsedMs, mode, guide);
+}
+
+// アプリの URL（name=value だけを付ける）
+export function pageUrl(href, name, value) {
+  const url = new URL(href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set(name, value);
+  return url.toString();
 }
 
 // アプリの URL（?noun= だけを付ける）
 export function appUrl(id, href) {
-  const url = new URL(href);
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set('noun', id);
-  return url.toString();
+  return pageUrl(href, 'noun', id);
 }
 
 export function shareIntentUrl(text, url) {
@@ -155,7 +165,7 @@ const formatDate = (ms) => {
 
 // 結果：モード・合計タイム・ステージごとのタイム。タイムアタックはランキング（この端末の上位 5 件）も
 // stages は src/stages.js の buildStages の結果（ステージ名とブロック数に使う）
-export function renderResult(container, { mode, guide = false, totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
+export function renderResult(container, { mode, guide = false, scope = 'この Noun', totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
   const ta = mode === 'timeattack';
   const rows = stages.map((st, i) => {
     const t = stageTimes[i];
@@ -170,7 +180,7 @@ export function renderResult(container, { mode, guide = false, totalMs, stageTim
   ];
   if (!ta) parts.push(el('p', { class: 'note' }, 'れんしゅうのタイムは、最初の操作からの時間です（ステージクリアの表示の間も入ります）。'));
   if (ta && ranking) {
-    parts.push(el('h3', {}, `ランキング（この端末・この Noun・${guide ? 'ガイドあり' : 'ガイドなし'}）`));
+    parts.push(el('h3', {}, `ランキング（この端末・${scope}・${guide ? 'ガイドあり' : 'ガイドなし'}）`));
     parts.push(el('ol', { class: 'ranking' }, ranking.map((r, i) => el('li', { class: i === rank ? 'me' : '' },
       el('span', { class: 'rank-no' }, `${i + 1}位`),
       el('span', { class: 'rank-time' }, formatTimeFine(r.totalMs)),

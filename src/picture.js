@@ -1,4 +1,4 @@
-// ドット絵の画像から、40×40 のマスの色を作る（お試しの絵）
+// ドット絵の画像から、40×40 のマスの色を作る（ドット絵）
 // 背景は左上の 1 ピクセルの色。背景でない部分をちょうど囲む正方形を size × size に分け、
 // 1 マスの中の 5×5 か所を見て、いちばん多い色（近い色はまとめる）をそのマスの色にする。
 // 背景がいちばん多いマスは null（ブロックを置かない）。乱数は使わないので、同じ画像なら毎回同じ
@@ -62,8 +62,3 @@ export async function loadPictureGrid(url, size = 40) {
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
   return gridFromPixels(data, canvas.width, canvas.height, size);
 }
-
-// お試しの絵の一覧（?sample=番号 で開く）
-export const SAMPLE_PICTURES = {
-  1: { file: 'data/samples/1.png', label: 'お試しの絵 1' },
-};
