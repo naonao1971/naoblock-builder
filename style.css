@@ -61,6 +61,7 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 .lead { color: var(--muted); }
 .start-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
 .start-form input { font: inherit; width: 7em; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
+.try-picture { font-size: 0.9rem; color: var(--muted); }
 
 .legal { color: var(--muted); font-size: 0.75rem; margin-top: 32px; }
 .legal p { margin: 2px 0; }
