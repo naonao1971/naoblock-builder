@@ -1,4 +1,5 @@
 // 検証用：node tools/check.mjs 11（パーツ割りと組立順の検算）
+//         node tools/check.mjs --subjects（題材：URL → 題材・保存の名前・シェアの文面だけ。ネットなしで動く）
 // オプション：
 //   --seed=body,accessory,head,glasses  サブグラフを使わずに seed を指定する
 //   --image-data=path                   unpkg を使わずに image-data.json を読む
@@ -12,10 +13,61 @@ import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
+import { subjectFromUrl, saveKey } from '../src/subjects.js';
+import { rankingKey } from '../src/ranking.js';
 
 const args = process.argv.slice(2);
 const opt = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
 const id = args.find((a) => !a.startsWith('--'));
+
+// 題材（src/subjects.js）の検算：URL → 題材、保存とランキングの名前、シェアの文面・URL
+// Nouns の名前と文面は、題材に分ける前（v16）と 1 文字も変わらないこと
+function checkSubjects() {
+  const href = 'https://naonao1971.github.io/naoblock-builder/?noun=11';
+  const r = { pieces: 93, elapsedMs: 754000, mode: 'practice', guide: false };
+  const ta = { ...r, mode: 'timeattack', guide: true };
+  const cases = [
+    { search: '?noun=11', kind: 'noun', id: '11', label: 'Noun 11',
+      save: 'naoblock:game:v1:noun:11:practice', rank: 'naoblock:ranking:v1:noun:11:timeattack', rankGuide: 'naoblock:ranking:v1:noun:11:timeattack:guide',
+      share: 'Noun 11 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock #Nouns',
+      shareTa: 'Noun 11 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock #Nouns',
+      url: 'https://naonao1971.github.io/naoblock-builder/?noun=11', file: 'naoblock-noun11.png' },
+    { search: '?noun=007', kind: 'noun', id: '7', label: 'Noun 7' },
+    { search: '?pic=1', kind: 'picture', id: '1', label: 'ドット絵 1',
+      save: 'naoblock:game:v1:picture:1:practice', rank: 'naoblock:ranking:v1:picture:1:timeattack', rankGuide: 'naoblock:ranking:v1:picture:1:timeattack:guide',
+      share: 'ドット絵 1 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
+      shareTa: 'ドット絵 1 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
+      url: 'https://naonao1971.github.io/naoblock-builder/?pic=1', file: 'naoblock-pic-1.png' },
+    { search: '?sample=1', kind: 'picture', id: '1', label: 'ドット絵 1' },
+    { search: '?pic=nothing', none: true },
+    { search: '?noun=abc', none: true },
+    { search: '', none: true },
+  ];
+  let ok = true;
+  console.log('## 題材（URL → 題材・保存の名前・シェア）');
+  for (const c of cases) {
+    const s = subjectFromUrl(c.search);
+    const got = s ? { kind: s.kind, id: s.id, label: s.label } : null;
+    const checks = [];
+    if (c.none) checks.push(['スタート画面', s === null]);
+    else {
+      checks.push([`${got?.kind}:${got?.id}「${got?.label}」`, s && s.kind === c.kind && s.id === c.id && s.label === c.label]);
+      if (c.save) {
+        checks.push([`保存 ${saveKey(s, 'practice')}`, saveKey(s, 'practice') === c.save]);
+        checks.push([`ランキング ${rankingKey(s, false)}`, rankingKey(s, false) === c.rank && rankingKey(s, true) === c.rankGuide]);
+        checks.push([`シェア「${s.shareText(r)}」`, s.shareText(r) === c.share]);
+        checks.push([`シェア（タイムアタック）「${s.shareText(ta)}」`, s.shareText(ta) === c.shareTa]);
+        checks.push([`URL ${s.url(href)}`, s.url(href) === c.url]);
+        checks.push([`画像の名前 ${s.fileName}`, s.fileName === c.file]);
+      }
+    }
+    for (const [text, good] of checks) { console.log(`  ${good ? 'OK ' : 'NG '}${c.search || '（なし）'} → ${text}`); ok = ok && !!good; }
+  }
+  return ok;
+}
+
+if (args.includes('--subjects')) process.exit(checkSubjects() ? 0 : 1);
+
 if (id == null || !/^\d+$/.test(id)) {
   console.error('使い方: node tools/check.mjs <Noun の番号> [--seed=body,accessory,head,glasses] [--image-data=path]');
   process.exit(2);
@@ -140,5 +192,8 @@ for (const l of sh.lines) {
 console.log(`  ${sh.plate.name} × ${sh.plate.count} 枚  ${yen(sh.plate.price)}`);
 console.log(`  合計: パーツ ${sh.bags} 袋 ${yen(sh.partsTotal)} ＋ プレート ${yen(sh.plate.price)} ＝ ${yen(sh.total)}`);
 
-const allOk = v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps && singlesNow <= singlesBefore && bv.ok && sameBlocks && sameParts;
+console.log('');
+const subjectsOk = checkSubjects();
+
+const allOk = subjectsOk && v.ok && sumCount === plan.pieces.length && sumCells === v.filledCells && same && sv.ok && sameSteps && singlesNow <= singlesBefore && bv.ok && sameBlocks && sameParts;
 process.exit(allOk ? 0 : 1);
