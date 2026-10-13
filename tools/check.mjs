@@ -13,7 +13,7 @@ import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
-import { subjectFromUrl, saveKey, PICTURES } from '../src/subjects.js';
+import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from '../src/subjects.js';
 import { rankingKey } from '../src/ranking.js';
 
 const args = process.argv.slice(2);
@@ -69,8 +69,16 @@ function checkSubjects() {
   for (const [name, pic] of Object.entries(PICTURES)) {
     const there = existsSync(fileURLToPath(new URL(`../${pic.file}`, import.meta.url)));
     console.log(`  ${there ? 'OK ' : 'NG '}絵「${pic.label}」（${name}）の画像 ${pic.file} がある`);
-    ok = ok && there;
+    const cat = CATEGORIES.find((c) => c.key === pic.category && c.input === 'cards');
+    console.log(`  ${cat ? 'OK ' : 'NG '}絵「${pic.label}」のカテゴリー ${pic.category ?? '（なし）'} が、カードから選ぶカテゴリー（${CATEGORIES.filter((c) => c.input === 'cards').map((c) => c.key).join('・')}）のどれか${cat ? `：${cat.label}` : ''}`);
+    ok = ok && there && !!cat;
   }
+  const order = CATEGORIES.map((c) => c.label).join('・');
+  const orderOk = order === 'Nouns・クリプト忍者・CNP・nanoQR';
+  console.log(`  ${orderOk ? 'OK ' : 'NG '}スタート画面のカテゴリーの順：${order}`);
+  const chibiOk = PICTURES['chibi-sakuya']?.category === 'ninja';
+  console.log(`  ${chibiOk ? 'OK ' : 'NG '}チビ咲耶はクリプト忍者（ninja）`);
+  ok = ok && orderOk && chibiOk;
   return ok;
 }
 

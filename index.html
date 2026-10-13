@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja" data-version="20">
+<html lang="ja" data-version="22">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,15 +12,14 @@
 <body data-view="start">
   <section id="view-start" class="page">
     <h1>ナオブロック <small>naoblock</small></h1>
-    <p class="lead">Nouns の番号を入れるか、ドット絵をえらぶと、40×40 のブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
-    <form class="start-form" method="get" action="">
-      <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
-      <button type="submit" class="primary">組み立てる</button>
-    </form>
-    <section class="pictures" aria-labelledby="pictures-title">
-      <h2 id="pictures-title">ドット絵で遊ぶ</h2>
-      <div id="picture-list" class="picture-list"></div>
-    </section>
+    <p class="lead">遊びたい絵をえらぶと、40×40 のブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
+    <!-- カテゴリー（src/subjects.js の CATEGORIES の順）。Nouns の番号の欄は、Nouns の見出しの下へ動かす -->
+    <div id="categories" class="categories">
+      <form id="noun-form" class="start-form" method="get" action="">
+        <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
+        <button type="submit" class="primary">組み立てる</button>
+      </form>
+    </div>
     <footer class="legal">
       <p>Nouns は CC0 です。</p>
       <p>nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。</p>
@@ -30,7 +29,7 @@
 
   <section id="view-loading" class="page" hidden>
     <p id="loading-text">読み込み中…</p>
-    <p><button id="loading-retry" type="button" hidden>もう一度</button> <a href="./">別の Noun で遊ぶ</a></p>
+    <p><button id="loading-retry" type="button" hidden>もう一度</button> <a href="./">別の絵で遊ぶ</a></p>
   </section>
 
   <section id="view-play" hidden>
@@ -38,7 +37,7 @@
       <div class="hud-main">
         <div class="hud-info">
           <div class="hud-row">
-            <a class="brand" href="./" title="別の Noun で遊ぶ">naoblock</a>
+            <a class="brand" href="./" title="別の絵で遊ぶ">naoblock</a>
             <span id="play-noun"></span>
             <span id="mode-badge" class="mode-badge"></span>
           </div>
@@ -178,7 +177,7 @@
 
     <div class="finish-actions">
       <button id="finish-again" type="button">もう一度</button>
-      <a class="button" href="./">別の Noun で遊ぶ</a>
+      <a class="button" href="./">別の絵で遊ぶ</a>
     </div>
 
     <footer class="legal">
