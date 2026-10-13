@@ -3,7 +3,7 @@
 // オプション：
 //   --seed=body,accessory,head,glasses  サブグラフを使わずに seed を指定する
 //   --image-data=path                   unpkg を使わずに image-data.json を読む
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { fetchSeed, fetchImageData, decodeNoun } from '../src/nouns.js';
 import { BLOCK_COLORS, colorById } from '../src/palette.js';
@@ -13,7 +13,7 @@ import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
-import { subjectFromUrl, saveKey } from '../src/subjects.js';
+import { subjectFromUrl, saveKey, PICTURES } from '../src/subjects.js';
 import { rankingKey } from '../src/ranking.js';
 
 const args = process.argv.slice(2);
@@ -33,13 +33,15 @@ function checkSubjects() {
       shareTa: 'Noun 11 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock #Nouns',
       url: 'https://naonao1971.github.io/naoblock-builder/?noun=11', file: 'naoblock-noun11.png' },
     { search: '?noun=007', kind: 'noun', id: '7', label: 'Noun 7' },
-    { search: '?pic=1', kind: 'picture', id: '1', label: 'ドット絵 1',
-      save: 'naoblock:game:v1:picture:1:practice', rank: 'naoblock:ranking:v1:picture:1:timeattack', rankGuide: 'naoblock:ranking:v1:picture:1:timeattack:guide',
-      share: 'ドット絵 1 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
-      shareTa: 'ドット絵 1 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
-      url: 'https://naonao1971.github.io/naoblock-builder/?pic=1', file: 'naoblock-pic-1.png' },
-    { search: '?sample=1', kind: 'picture', id: '1', label: 'ドット絵 1' },
+    { search: '?pic=chibi-sakuya', kind: 'picture', id: 'chibi-sakuya', label: 'チビ咲耶',
+      save: 'naoblock:game:v1:picture:chibi-sakuya:practice', rank: 'naoblock:ranking:v1:picture:chibi-sakuya:timeattack', rankGuide: 'naoblock:ranking:v1:picture:chibi-sakuya:timeattack:guide',
+      share: 'チビ咲耶 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
+      shareTa: 'チビ咲耶 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
+      url: 'https://naonao1971.github.io/naoblock-builder/?pic=chibi-sakuya', file: 'naoblock-pic-chibi-sakuya.png' },
+    { search: '?pic=1', kind: 'picture', id: 'chibi-sakuya', label: 'チビ咲耶' },
+    { search: '?sample=1', kind: 'picture', id: 'chibi-sakuya', label: 'チビ咲耶' },
     { search: '?pic=nothing', none: true },
+    { search: '?pic=constructor', none: true },
     { search: '?noun=abc', none: true },
     { search: '', none: true },
   ];
@@ -62,6 +64,12 @@ function checkSubjects() {
       }
     }
     for (const [text, good] of checks) { console.log(`  ${good ? 'OK ' : 'NG '}${c.search || '（なし）'} → ${text}`); ok = ok && !!good; }
+  }
+  // ドット絵の一覧の画像が、全部ちゃんとあるか
+  for (const [name, pic] of Object.entries(PICTURES)) {
+    const there = existsSync(fileURLToPath(new URL(`../${pic.file}`, import.meta.url)));
+    console.log(`  ${there ? 'OK ' : 'NG '}絵「${pic.label}」（${name}）の画像 ${pic.file} がある`);
+    ok = ok && there;
   }
   return ok;
 }
