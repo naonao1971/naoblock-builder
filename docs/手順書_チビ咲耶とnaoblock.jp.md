@@ -14,7 +14,7 @@ PR を 2 本に分ける。
 | A | **チビ咲耶を正式な絵にする**。「ドット絵 1」を「チビ咲耶」にして、スタート画面に絵を選ぶ欄を作る。絵を足すときは「画像を置いて一覧に 1 行足すだけ」で済む形にする |
 | B | **naoblock.jp からつなぐ準備**。シェアしたときのカード画像（OGP）と、naoblock.jp へ戻るリンク |
 
-ほかの咲耶 GAMES と同じく、最後は `<名前>.naoblock.jp` で公開して、naoblock.jp のゲーム一覧にカードを並べる。ドメインの付け替えと naoblock.jp 側のカード追加は、この手順書ではやらない（8 章）。
+ほかの咲耶 GAMES と同じく、最後は **`builder.naoblock.jp`**（なおなお決定 2026-10-14）で公開して、naoblock.jp のゲーム一覧にカードを並べる。ドメインの付け替えと naoblock.jp 側のカード追加は、この手順書ではやらない（8 章）。
 
 ## 2. 決定事項（変えない）
 
@@ -69,7 +69,7 @@ naoblock.jp のゲーム一覧は、各ゲームの `ogp.png`（1200×630）を�
 - `ogp.png`（1200×630）をリポジトリの**いちばん上**に置く
   - 中身（仮）：左に Nouns の完成図、右にチビ咲耶の完成図（どちらもブロックの色に置き換えた絵）＋「ナオブロック」の文字。作り方は任せる（アプリの描画を使って書き出してもよい）
 - `index.html` の `<head>` に、ほかの咲耶 GAMES と同じ項目をそろえる：`description`、`og:title`、`og:description`、`og:image`、`og:url`、`twitter:card`（`summary_large_image`）
-  - `og:image`・`og:url` は**公開する URL が決まるまで（仮）で今の GitHub Pages の URL**にしておき、コメントで「ドメインが決まったら差し替え」と書く。ここだけは絶対 URL でよい
+  - `og:image`・`og:url` は**最初から `https://builder.naoblock.jp/ogp.png`・`https://builder.naoblock.jp/`** にする（ドメインの付け替えより先にマージしても、付け替えた時点でそのまま正しくなる）。ここだけは絶対 URL でよい
 - `<title>` は今のまま「ナオブロック（naoblock）」
 
 ### 4-2. naoblock.jp へ戻るリンク
@@ -116,13 +116,12 @@ naoblock.jp のゲーム一覧は、各ゲームの `ogp.png`（1200×630）を�
 
 この手順書の PR がマージされたあとにやる。ほかの咲耶 GAMES（`rally.naoblock.jp` など）と同じ手順。
 
-1. 公開の名前を決める（例：`block.naoblock.jp`、8 章の「決めること」）
-2. DNS に CNAME を足し、`naoblock-builder` の GitHub Pages にカスタムドメインを設定（リポジトリに `CNAME` ファイルができる）
-3. `index.html` の `og:image`・`og:url` を新しい URL に差し替える
-4. naoblock.jp（`naoblock` リポジトリ）のゲーム一覧にカードを 1 枚足す
-5. 注意：**途中保存とランキングはドメインごと**なので、github.io で遊んだ記録は新しいドメインには引き継がれない。公開前に付け替えれば困る人はいない
+1. DNS に `builder` の CNAME を足し、`naoblock-builder` の GitHub Pages にカスタムドメインを設定（リポジトリに `CNAME` ファイルができる）
+2. `https://builder.naoblock.jp/` で開けること、`og:image` の画像が出ることを確かめる
+3. naoblock.jp（`naoblock` リポジトリ）のゲーム一覧にカードを 1 枚足す
+4. 注意：**途中保存とランキングはドメインごと**なので、github.io で遊んだ記録は新しいドメインには引き継がれない。公開前に付け替えれば困る人はいない
 
 ### 決めること（なおなおに確認）
 
-- 公開の名前：`block.naoblock.jp`／`builder.naoblock.jp`／ほか
+- ~~公開の名前~~ → **`builder.naoblock.jp`** に決定（2026-10-14）
 - OGP 画像の中身（4-1 の（仮））
