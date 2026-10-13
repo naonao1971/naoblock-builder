@@ -49,6 +49,9 @@ export function gridFromPixels(pixels, width, height, size = 40) {
 // 画像を読み込んで gridFromPixels にかける（ブラウザ用）
 export async function loadPictureGrid(url, size = 40) {
   const img = new Image();
+  // 確認用の raw.githack は画像を別のサーバー（rawcdn）から返すことがある。
+  // そのままだと色を読み出せない（The operation is insecure）ので、CORS で読み込む
+  img.crossOrigin = 'anonymous';
   img.src = url;
   await img.decode();
   const canvas = document.createElement('canvas');
