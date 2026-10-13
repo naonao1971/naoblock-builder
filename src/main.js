@@ -438,27 +438,24 @@ async function start(id) {
   // 落ちてくる型：正解の位置と向きに重なった瞬間に、自動ではまる
   const autoPlace = () => {
     if (!game.falling || !game.isCorrect()) return false;
-    const block = game.block;
     const res = game.place();
-    if (res.ok) afterPlaced(block, res);
+    if (res.ok) afterPlaced(res.block, res);
     return true;
   };
 
   const place = () => {
-    const block = game.block;
     const from = { ...game.held };
     const res = game.place();
-    if (res.ok) afterPlaced(block, res);
+    if (res.ok) afterPlaced(res.block, res);
     else { view.shake(); moved(from); sound.nope(); }
   };
 
   const tap = (cx, cy) => {
-    const block = game.block;
     const from = { ...game.held };
     const r = game.tapCell(cx, cy);
     if (r === 'placed') {
       const res = game.place();
-      if (res.ok) afterPlaced(block, res);
+      if (res.ok) afterPlaced(res.block, res);
     } else if (r === 'moved') {
       moved(from);
     } else {

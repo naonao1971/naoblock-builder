@@ -1,6 +1,8 @@
 // ゲームの進行（パズル型）。DOM を使わない純粋なロジックなので Node からも動かせる。
 // 正解かどうかは「持っているブロックが覆うマスが、組立図のマスとまったく同じか」で決める。
 // だから Z・S 字のように半回転で同じマスを覆う向きは、どれでも正解になる。
+// 部品 1 個だけのブロックは、同じステージのまだ置いていない「同じ色・同じ形（部品 1 個）」の場所にもはまる。
+// そのときは、その場所のブロックと出す順番を入れ替える（組み合わせブロックは今まで通り、決まった場所だけ）。
 import { rotateCells } from './pieces.js';
 
 const key = ([x, y]) => `${x},${y}`;
@@ -19,9 +21,13 @@ const shapeKey = (cells) => normalize(cells).map(key).join(' ');
 // 最初の向き（決まった回し方。乱数は使わない）
 const startTurns = (block) => (block.id * 3 + 1) % 4;
 
+const single = (b) => !b.combo && b.pieces.length === 1;
+const identity = (n) => Array.from({ length: n }, (_, i) => i);
+const isOrder = (order, n) => Array.isArray(order) && order.length === n && [...order].sort((a, b) => a - b).every((v, i) => v === i);
+
 export class Game {
   // stages: src/stages.js の buildStages の結果、layout: plateLayout
-  // save: { stage, block, stageTimes } があれば、そこから
+  // save: { stage, block, stageTimes, order } があれば、そこから
   constructor({ stages, layout, save = null }) {
     this.stages = stages;
     this.layout = layout;
@@ -33,16 +39,19 @@ export class Game {
       this.blockIndex = save.block || 0;
       this.stageTimes = save.stageTimes || [];
     }
+    // 今のステージの中で、ブロックを出す順番（別の場所にはめると入れ替わる）
+    const n = this.done ? 0 : this.stage.blocks.length;
+    this.order = this.blockIndex > 0 && isOrder(save?.order, n) ? save.order.slice() : identity(n);
     this.skipEmptyStages();
     this.spawn();
   }
 
   get done() { return this.stageIndex >= this.stages.length; }
   get stage() { return this.stages[this.stageIndex]; }
-  get block() { return this.done ? null : this.stage.blocks[this.blockIndex]; }
+  get block() { return this.done ? null : this.stage.blocks[this.order[this.blockIndex]]; }
   get nextBlock() {
     if (this.done) return null;
-    if (this.blockIndex + 1 < this.stage.blocks.length) return this.stage.blocks[this.blockIndex + 1];
+    if (this.blockIndex + 1 < this.stage.blocks.length) return this.stage.blocks[this.order[this.blockIndex + 1]];
     for (let s = this.stageIndex + 1; s < this.stages.length; s++) if (this.stages[s].blocks.length) return this.stages[s].blocks[0];
     return null;
   }
@@ -59,6 +68,7 @@ export class Game {
       if (this.stageTimes[this.stageIndex] == null) this.stageTimes[this.stageIndex] = 0;
       this.stageIndex++;
       this.blockIndex = 0;
+      this.order = this.done ? [] : identity(this.stage.blocks.length);
     }
   }
 
@@ -88,10 +98,38 @@ export class Game {
     return this.held.shape.map(([x, y]) => [x + this.held.x, y + this.held.y]);
   }
 
-  // 組立図とまったく同じマスを覆っているか
-  isCorrect() {
+  // はめられる場所：本来の場所と、部品 1 個のブロックなら、まだ置いていない同じ色・同じ形の場所
+  // 戻り値：[{ pos: 出す順番の位置, keys, shape, x, y, cells }]（先頭が本来の場所）
+  places() {
+    const b = this.block;
+    if (!b) return [];
+    const one = (pos) => {
+      const blk = this.stage.blocks[this.order[pos]];
+      return { pos, keys: new Set(blk.cells.map(key)), shape: shapeKey(blk.cells), x: blk.x, y: blk.y, cells: blk.cells };
+    };
+    const out = [one(this.blockIndex)];
+    if (!single(b)) return out;
+    const shape = shapeKey(b.cells);
+    for (let pos = this.blockIndex + 1; pos < this.order.length; pos++) {
+      const o = this.stage.blocks[this.order[pos]];
+      if (single(o) && o.color === b.color && o.cells.length === b.cells.length) {
+        // 同じ形：回して同じマスの並びになる
+        let c = normalize(o.cells);
+        for (let i = 0; i < 4; i++, c = rotateCells(c)) if (shapeKey(c) === shape) { out.push(one(pos)); break; }
+      }
+    }
+    return out;
+  }
+
+  // 持っているブロックが、はめられる場所のどれかとまったく同じマスを覆っていれば、その場所（なければ null）
+  matchPlace() {
     const cells = this.heldCells();
-    return cells.length === this.target.keys.size && cells.every((c) => this.target.keys.has(key(c)));
+    return this.places().find((p) => cells.length === p.keys.size && cells.every((c) => p.keys.has(key(c)))) || null;
+  }
+
+  // 組立図とまったく同じマスを覆っているか（同じ色・同じ形の別の場所も含む）
+  isCorrect() {
+    return this.matchPlace() != null;
   }
 
   clamp() {
@@ -130,12 +168,14 @@ export class Game {
   tapCell(cx, cy) {
     if (!this.held) return 'moved';
     const near = (cells) => cells.some(([x, y]) => Math.abs(x - cx) <= 1 && Math.abs(y - cy) <= 1);
-    const targetCells = [...this.target.keys].map((k) => k.split(',').map(Number));
-    const onTarget = targetCells.some(([x, y]) => x === cx && y === cy);
     const onHeld = this.heldCells().some(([x, y]) => x === cx && y === cy);
-    if (shapeKey(this.held.shape) === this.target.shape && (onTarget || (!onHeld && near(targetCells)))) {
-      this.held.x = this.target.x;
-      this.held.y = this.target.y;
+    const heldShape = shapeKey(this.held.shape);
+    const fits = this.places().filter((p) => p.shape === heldShape);
+    const hit = fits.find((p) => p.cells.some(([x, y]) => x === cx && y === cy))
+      || (!onHeld && fits.find((p) => near(p.cells)));
+    if (hit) {
+      this.held.x = hit.x;
+      this.held.y = hit.y;
       return 'placed';
     }
     if (onHeld || near(this.heldCells())) {
@@ -179,19 +219,26 @@ export class Game {
   restartStage() {
     if (this.done) return;
     this.blockIndex = 0;
+    this.order = identity(this.stage.blocks.length);
     this.spawn();
   }
 
   // 「はめる」：正解ならはまって次へ。違えば元の場所へ戻る（間違いは数えない）
-  // 戻り値：{ ok, stageCleared, done }
+  // 戻り値：{ ok, block: はまったブロック, stageCleared, done }
   place() {
     if (!this.held) return { ok: false };
-    if (!this.isCorrect()) {
+    const at = this.matchPlace();
+    if (!at) {
       this.held.x = this.home.x;
       this.held.y = this.home.y;
       this.clamp();
       return { ok: false };
     }
+    // 別の場所にはまったら、そこのブロックと出す順番を入れ替える（同じ色・同じ形なので見た目は同じ）
+    if (at.pos !== this.blockIndex) {
+      [this.order[this.blockIndex], this.order[at.pos]] = [this.order[at.pos], this.order[this.blockIndex]];
+    }
+    const block = this.block;
     const clearedStage = this.stageIndex;
     this.blockIndex++;
     let stageCleared = false;
@@ -199,10 +246,11 @@ export class Game {
       stageCleared = true;
       this.stageIndex++;
       this.blockIndex = 0;
+      this.order = this.done ? [] : identity(this.stage.blocks.length);
       this.skipEmptyStages();
     }
     this.spawn();
-    return { ok: true, stageCleared, clearedStage, done: this.done };
+    return { ok: true, block, stageCleared, clearedStage, done: this.done };
   }
 
   // 置き終わったブロック（描画用）
@@ -210,12 +258,12 @@ export class Game {
     const out = [];
     for (let s = 0; s < this.stages.length; s++) {
       const n = s < this.stageIndex ? this.stages[s].blocks.length : s === this.stageIndex ? this.blockIndex : 0;
-      for (let i = 0; i < n; i++) out.push(this.stages[s].blocks[i]);
+      for (let i = 0; i < n; i++) out.push(this.stages[s].blocks[s === this.stageIndex ? this.order[i] : i]);
     }
     return out;
   }
 
   snapshot() {
-    return { stage: this.stageIndex, block: this.blockIndex, stageTimes: this.stageTimes.slice() };
+    return { stage: this.stageIndex, block: this.blockIndex, stageTimes: this.stageTimes.slice(), order: this.order.slice() };
   }
 }
