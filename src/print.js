@@ -47,16 +47,16 @@ function plateSeams(ctx, layout, s, ox = 0, oy = 0, w = layout.width, h = layout
 
 // ---- 表紙 ----
 
-function coverPage({ id, plan, plateHex, url }) {
+function coverPage({ label, plan, plateHex, url }) {
   const s = 24;
   const img = canvasImage(plan.layout.width * s, plan.layout.height * s, (ctx) => {
     drawFinishedBoard(ctx, { layout: plan.layout, pieces: plan.pieces, plateHex, scale: s });
     plateSeams(ctx, plan.layout, s);
-  }, `Noun ${id} の完成図`);
+  }, `${label} の完成図`);
   const cm = (plan.layout.width * 4) / 10;
   return el('section', { class: 'print-page print-cover' },
     el('p', { class: 'print-brand' }, 'ナオブロック（naoblock）組立図'),
-    el('h1', {}, `Noun ${id}`),
+    el('h1', {}, label),
     el('div', { class: 'print-cover-figure' }, img),
     el('table', { class: 'print-facts' },
       el('tbody', {},
@@ -222,9 +222,9 @@ function stepPages({ plan, plateHex, steps }) {
 }
 
 // 印刷用の中身を container に作る
-export function buildPrintout(container, { id, plan, partsData, steps, plateHex, url }) {
+export function buildPrintout(container, { label, plan, partsData, steps, plateHex, url }) {
   container.replaceChildren(
-    coverPage({ id, plan, plateHex, url }),
+    coverPage({ label, plan, plateHex, url }),
     el('section', { class: 'print-page print-lists' },
       partsSection(plan),
       shoppingSection(plan, partsData)),
