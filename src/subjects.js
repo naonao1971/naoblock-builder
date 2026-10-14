@@ -29,6 +29,18 @@ export const CATEGORIES = [
 // category は CATEGORIES の input: 'cards' のどれか。カテゴリーは URL・保存・ランキングには入らない
 export const PICTURES = {
   'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶', category: 'ninja' },
+  // CNP（咲耶ゲームの CNP_DEFS と同じ並び・名前）。背景は透明、ナノブロックの色だけで描いた 40 マスのドット絵
+  'cnp-leelee': { file: 'data/samples/cnp-leelee.png', label: 'リーリー', category: 'cnp' },
+  'cnp-mitama': { file: 'data/samples/cnp-mitama.png', label: 'ミタマ', category: 'cnp' },
+  'cnp-narukami': { file: 'data/samples/cnp-narukami.png', label: 'ナルカミ', category: 'cnp' },
+  'cnp-orochi': { file: 'data/samples/cnp-orochi.png', label: 'オロチ', category: 'cnp' },
+  'cnp-luna': { file: 'data/samples/cnp-luna.png', label: 'ルナ', category: 'cnp' },
+  'cnp-yama': { file: 'data/samples/cnp-yama.png', label: 'ヤマ', category: 'cnp' },
+  'cnp-makami': { file: 'data/samples/cnp-makami.png', label: 'マカミ', category: 'cnp' },
+  'cnp-towa': { file: 'data/samples/cnp-towa.png', label: 'トワ', category: 'cnp' },
+  'cnp-setsuna': { file: 'data/samples/cnp-setsuna.png', label: 'セツナ', category: 'cnp' },
+  'cnp-ema': { file: 'data/samples/cnp-ema.png', label: 'エマ', category: 'cnp' },
+  'cnp-taruto': { file: 'data/samples/cnp-taruto.png', label: 'タルト', category: 'cnp' },
 };
 // 古い URL の名前 → 今の名前（?pic=1・?sample=1 のため）
 const PICTURE_ALIASES = { 1: 'chibi-sakuya' };

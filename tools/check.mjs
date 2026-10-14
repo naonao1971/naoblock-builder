@@ -14,6 +14,7 @@ import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
 import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from '../src/subjects.js';
+import { gridFromPixels } from '../src/picture.js';
 import { rankingKey } from '../src/ranking.js';
 
 const args = process.argv.slice(2);
@@ -73,6 +74,12 @@ function checkSubjects() {
     console.log(`  ${cat ? 'OK ' : 'NG '}絵「${pic.label}」のカテゴリー ${pic.category ?? '（なし）'} が、カードから選ぶカテゴリー（${CATEGORIES.filter((c) => c.input === 'cards').map((c) => c.key).join('・')}）のどれか${cat ? `：${cat.label}` : ''}`);
     ok = ok && there && !!cat;
   }
+  // 背景が透明な絵：透明なところだけが空き、白いマスはブロックになる（2×2 の画像で確かめる）
+  const clearPx = [0, 0, 0, 0, 244, 244, 244, 255, 26, 26, 26, 255, 0, 0, 0, 0];
+  const clearGrid = gridFromPixels(clearPx, 2, 2, 2).grid.flat().join(',');
+  const clearOk = clearGrid === ',f4f4f4,1a1a1a,';
+  console.log(`  ${clearOk ? 'OK ' : 'NG '}背景が透明な絵で、白（f4f4f4）と黒が残り、透明だけが空く：${clearGrid}`);
+  ok = ok && clearOk;
   const order = CATEGORIES.map((c) => c.label).join('・');
   const orderOk = order === 'Nouns・クリプト忍者・CNP・nanoQR';
   console.log(`  ${orderOk ? 'OK ' : 'NG '}スタート画面のカテゴリーの順：${order}`);
