@@ -1,27 +1,32 @@
 <!doctype html>
-<html lang="ja" data-version="25">
+<html lang="ja" data-version="26">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ナオブロック（naoblock）</title>
+  <title>naoblock</title>
   <meta name="description" content="遊びたい絵をえらぶと、40×40 のブロックパズルで遊べます。Nouns・クリプト忍者などの絵を、ブロックを回してはめて組み立てます。">
   <!-- シェアしたときのカード。og:image・og:url は公開先（builder.naoblock.jp）の絶対 URL（ここだけ） -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="ナオブロック（naoblock）">
+  <meta property="og:title" content="naoblock">
   <meta property="og:description" content="遊びたい絵をえらぶと、40×40 のブロックパズルで遊べます。Nouns・クリプト忍者などの絵を、ブロックを回してはめて組み立てます。">
   <meta property="og:image" content="https://builder.naoblock.jp/ogp.png">
   <meta property="og:url" content="https://builder.naoblock.jp/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:,">
+  <!-- フォントは naoblock.jp と同じ（英字の見出し＝Londrina Solid、本文＝Noto Sans JP） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="print.css" media="print">
   <script type="module" src="src/main.js"></script>
 </head>
 <body data-view="start">
   <section id="view-start" class="page">
-    <h1>ナオブロック <small>naoblock</small></h1>
+    <img class="start-header" src="data/header.jpg" width="1200" height="436" alt="なおなおとチビ咲耶が、スマホでブロックのドット絵を組み立てている絵">
+    <h1 class="app-title">naoblock</h1>
     <p class="lead">遊びたい絵をえらぶと、40×40 のブロックパズルで遊べます。ブロックを動かして回して、組立図どおりの場所にはめていきます。</p>
-    <!-- カテゴリー（src/subjects.js の CATEGORIES の順）。Nouns の番号の欄は、Nouns の見出しの下へ動かす -->
+    <!-- カテゴリーのタブ（src/subjects.js の CATEGORIES の順）。Nouns の番号の欄は、Nouns のタブの中へ動かす -->
     <div id="categories" class="categories">
       <form id="noun-form" class="start-form" method="get" action="">
         <label>Noun の番号 <input name="noun" type="number" inputmode="numeric" min="0" step="1" required placeholder="11"></label>
