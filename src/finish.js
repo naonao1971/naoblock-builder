@@ -98,6 +98,25 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+// 完成図を付けてシェアする（咲耶ゲームの shareResult と同じ動き）
+//  共有に対応（スマホ）：共有シートに文章（最後に URL）と画像を渡す。シートを閉じた（AbortError）はエラーにしない
+//  非対応（PC など）：画像を保存して、X の投稿画面を開く → 'saved'（「添付してください」と出す）
+// blob は前もって作っておく（押してから作ると、共有や新しいタブが止められることがあるので）
+export async function shareWithImage({ text, url, blob, fileName }) {
+  const file = blob ? new File([blob], fileName, { type: 'image/png' }) : null;
+  if (file && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ text: `${text} ${url}`, files: [file] });
+    } catch (e) {
+      if (e?.name !== 'AbortError') throw e;
+    }
+    return 'shared';
+  }
+  if (blob) downloadBlob(blob, fileName);
+  window.open(shareIntentUrl(text, url), '_blank', 'noopener'); // URL は intent の url に 1 回だけ
+  return blob ? 'saved' : 'opened';
+}
+
 export function downloadCanvas(canvas, filename) {
   canvas.toBlob((blob) => { if (blob) downloadBlob(blob, filename); }, 'image/png');
 }
