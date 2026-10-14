@@ -61,8 +61,14 @@ h1 small { font-size: 0.9rem; color: var(--muted); font-weight: normal; }
 .lead { color: var(--muted); }
 .start-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
 .start-form input { font: inherit; width: 7em; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
-.category { margin: 18px 0 0; }
-.category h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.category-tabs { display: flex; gap: 4px; margin: 20px 0 0; border-bottom: 2px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.category-tab {
+  flex: 1 0 auto; min-height: 44px; padding: 8px 12px; margin-bottom: -2px;
+  border: 1px solid transparent; border-bottom: 2px solid transparent; border-radius: 10px 10px 0 0;
+  background: transparent; color: var(--muted); font-weight: bold; white-space: nowrap;
+}
+.category-tab[aria-selected="true"] { color: var(--accent); border-color: var(--line); border-bottom-color: var(--bg); background: var(--bg); }
+.category { margin: 16px 0 0; }
 .category .start-form { margin: 0; }
 .soon { display: inline-block; margin: 0; padding: 6px 12px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 0.9rem; }
 .soon-note { margin: 6px 0 0; color: var(--muted); font-size: 0.85rem; }

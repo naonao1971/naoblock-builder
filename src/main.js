@@ -18,6 +18,7 @@ const PLATE_HEX = 'd9d6cf';
 
 const HELP_KEY = 'naoblock:help-seen-game';
 const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく）
+const TAB_KEY = 'naoblock:tab'; // スタート画面で開いていたタブ（遊んで戻ったとき、同じタブを開く）
 const HINT_MS = 5000; // れんしゅう：5 秒迷ったら正解の場所が光る
 const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
@@ -608,7 +609,8 @@ function showVersion() {
   }
 }
 
-// スタート画面：CATEGORIES の順に、見出し＋中身（番号の欄・絵のカード・準備中）を並べる
+// スタート画面：CATEGORIES の順にタブを並べ、選んだタブの中身（番号の欄・絵のカード・準備中）だけを出す。
+// 最初に開くタブは、URL の #（例：#cnp）→ この画面で前に開いていたタブ → いちばん前のタブ の順に決める
 function pictureCard(name, pic) {
   const a = document.createElement('a');
   a.className = 'picture-card';
@@ -620,9 +622,7 @@ function pictureCard(name, pic) {
   return a;
 }
 
-function renderCategories() {
-  const box = $('categories');
-  const form = $('noun-form');
+function categoryPanel(cat, form) {
   const soon = (note) => {
     const p = document.createElement('p');
     p.className = 'soon';
@@ -633,31 +633,84 @@ function renderCategories() {
     n.textContent = note;
     return [p, n];
   };
-  box.replaceChildren(...CATEGORIES.map((cat) => {
-    const sec = document.createElement('section');
-    sec.className = `category category-${cat.key}`;
-    const h = document.createElement('h2');
-    h.textContent = cat.label;
-    sec.append(h);
-    if (!cat.ready) {
-      sec.append(...soon(cat.note));
-    } else if (cat.input === 'noun') {
-      sec.append(form);
-    } else if (cat.input === 'cards') {
-      const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key).map(([name, pic]) => pictureCard(name, pic));
-      if (cards.length) {
-        const list = document.createElement('div');
-        list.className = 'picture-list';
-        list.append(...cards);
-        sec.append(list);
-      } else {
-        sec.append(...soon(cat.note));
-      }
+  const sec = document.createElement('section');
+  sec.className = `category category-${cat.key}`;
+  if (!cat.ready) {
+    sec.append(...soon(cat.note));
+  } else if (cat.input === 'noun') {
+    sec.append(form);
+  } else if (cat.input === 'cards') {
+    const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key).map(([name, pic]) => pictureCard(name, pic));
+    if (cards.length) {
+      const list = document.createElement('div');
+      list.className = 'picture-list';
+      list.append(...cards);
+      sec.append(list);
     } else {
       sec.append(...soon(cat.note));
     }
-    return sec;
-  }));
+  } else {
+    sec.append(...soon(cat.note));
+  }
+  return sec;
+}
+
+function firstTab() {
+  const keys = CATEGORIES.map((c) => c.key);
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  if (keys.includes(fromHash)) return fromHash;
+  let saved = null;
+  try { saved = sessionStorage.getItem(TAB_KEY); } catch { /* 覚えられない環境では、いちばん前のタブ */ }
+  return keys.includes(saved) ? saved : keys[0];
+}
+
+function renderCategories() {
+  const box = $('categories');
+  const form = $('noun-form');
+  const tabs = document.createElement('div');
+  tabs.className = 'category-tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', '絵の種類');
+  const buttons = [];
+  const panels = [];
+  const select = (key, { focus = false, remember = true } = {}) => {
+    CATEGORIES.forEach((cat, i) => {
+      const on = cat.key === key;
+      buttons[i].setAttribute('aria-selected', String(on));
+      buttons[i].tabIndex = on ? 0 : -1;
+      panels[i].hidden = !on;
+      if (on && focus) buttons[i].focus();
+    });
+    if (!remember) return;
+    try { sessionStorage.setItem(TAB_KEY, key); } catch { /* 覚えられなくても切り替えはできる */ }
+    history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
+  };
+  CATEGORIES.forEach((cat, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'category-tab';
+    b.id = `tab-${cat.key}`;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-controls', `panel-${cat.key}`);
+    b.textContent = cat.label;
+    b.onclick = () => select(cat.key);
+    // ← → で隣のタブへ（キーボードで使う人向け）
+    b.onkeydown = (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      select(CATEGORIES[(i + step + CATEGORIES.length) % CATEGORIES.length].key, { focus: true });
+    };
+    const panel = categoryPanel(cat, form);
+    panel.id = `panel-${cat.key}`;
+    panel.setAttribute('role', 'tabpanel');
+    panel.setAttribute('aria-labelledby', b.id);
+    buttons.push(b);
+    panels.push(panel);
+  });
+  tabs.append(...buttons);
+  box.replaceChildren(tabs, ...panels);
+  select(firstTab(), { remember: false });
 }
 
 function init() {
