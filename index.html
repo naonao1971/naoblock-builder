@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja" data-version="26">
+<html lang="ja" data-version="27">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -54,6 +54,7 @@
             <a class="brand" href="./" title="別の絵で遊ぶ">naoblock</a>
             <span id="play-noun"></span>
             <span id="mode-badge" class="mode-badge"></span>
+            <span id="lives" class="lives" hidden></span>
           </div>
           <div class="step-row">
             <span id="step-label" class="step-label"></span>
@@ -69,6 +70,7 @@
         <div class="progress"><div id="progress-bar"></div></div>
         <span id="progress-text" class="muted"></span>
       </div>
+      <div id="limit" class="limit" hidden aria-hidden="true"><div id="limit-bar"></div></div>
     </header>
 
     <div class="board-area">
@@ -129,11 +131,11 @@
         <p class="guide-note muted">ガイドありは、置くブロックの形が盤面に薄く出ます（パズルの台紙のように）</p>
         <button id="mode-practice" type="button" class="mode-btn primary">
           <strong>れんしゅう</strong>
-          <span>時間制限なし。5 秒迷うと、置く場所が光ります</span>
+          <span>時間制限なし・ブロックは落ちてきません。5 秒迷うと、置く場所が光ります</span>
         </button>
         <button id="mode-timeattack" type="button" class="mode-btn">
           <strong>タイムアタック</strong>
-          <span>ステージごとに制限時間。💡 ヒントは 1 回 +3 秒</span>
+          <span>組み立てたタイムを競います。ブロックが落ちてきて、だんだん速くなります。ミス 3 回でゲームオーバー。💡 ヒントは 1 回 +3 秒</span>
           <span id="mode-best" class="mode-best"></span>
         </button>
       </div>
@@ -146,13 +148,24 @@
           <li>十字キー（PC は矢印キー）でブロックを動かし、回転ボタン（Z / X）で向きを合わせて、「はめる」（スペース）で置きます</li>
           <li>盤面のマスをタップすると、ブロックがそこへ飛びます。持っているブロックをタップすると回ります</li>
           <li>正しい場所に重なると、ブロックの縁が光ります。れんしゅうでは、5 秒迷うと置く場所が光ります</li>
-          <li>ステージ 3 からはブロックが落ちてきます。正しい場所と向きに重なると、そのままはまります（▼ で速く落とせます）</li>
-          <li>タイムアタックは、ステージごとに制限時間があります。時間切れになると、そのステージを最初からやり直します</li>
+          <li>タイムアタックは合計タイムを競います。ブロックが落ちてきて、だんだん速くなります（▼ で速く落とせます）。正しい場所と向きに重なると、そのままはまります</li>
+          <li>下まで落ちきるか、ステージの時間切れ（上の細いバー）で ♥ が 1 つ減ります。0 でゲームオーバー。続けられますが、ランキングには入りません</li>
           <li>ガイドありにすると、置くブロックの形が盤面に薄い色で出ます。タイムアタックのランキングは、ガイドあり・なしで別々です</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
         </ul>
         <div class="buttons">
           <button id="help-close" type="button" class="primary">はじめる</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gameover" class="modal" hidden>
+      <div class="card">
+        <p class="gameover-title">ゲームオーバー</p>
+        <p id="gameover-text"></p>
+        <div class="buttons">
+          <button id="gameover-continue" type="button" class="primary">このステージから続ける</button>
+          <button id="gameover-restart" type="button">最初から</button>
         </div>
       </div>
     </div>
