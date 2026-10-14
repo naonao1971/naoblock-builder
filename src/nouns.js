@@ -1,5 +1,5 @@
 // Nouns の seed 取得と 32×32 への復元
-// fetchSeed / fetchImageData だけがネットワークを使う。decodeNoun は純粋関数。
+// fetchSeed / fetchSeeds / fetchLatestId / fetchImageData だけがネットワークを使う。decodeNoun は純粋関数。
 
 export const SUBGRAPH_URL =
   'https://api.goldsky.com/api/public/project_clnbcoajmebxn33wdbt98f439/subgraphs/nouns-mainnet/1.0.0/gn';
@@ -7,26 +7,54 @@ export const IMAGE_DATA_URL = 'https://unpkg.com/@nouns/assets@0.10.0/dist/image
 
 export const NOUN_SIZE = 32;
 
-export async function fetchSeed(id) {
-  const query = `{ noun(id: "${Number(id)}") { seed { background body accessory head glasses } } }`;
+const SEED_KEYS = ['background', 'body', 'accessory', 'head', 'glasses'];
+const toSeed = (seed) => Object.fromEntries(SEED_KEYS.map((k) => [k, Number(seed[k])]));
+
+async function query(q) {
   const res = await fetch(SUBGRAPH_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query: q }),
   });
   if (!res.ok) throw new Error(`サブグラフの取得に失敗しました（HTTP ${res.status}）`);
   const json = await res.json();
-  const seed = json?.data?.noun?.seed;
-  if (!seed) throw new Error(`Noun ${id} が見つかりません`);
-  const out = {};
-  for (const k of ['background', 'body', 'accessory', 'head', 'glasses']) out[k] = Number(seed[k]);
-  return out;
+  if (json?.errors?.length) throw new Error(`サブグラフの取得に失敗しました（${json.errors[0].message}）`);
+  return json?.data;
 }
 
-export async function fetchImageData() {
-  const res = await fetch(IMAGE_DATA_URL);
-  if (!res.ok) throw new Error(`パーツの絵の取得に失敗しました（HTTP ${res.status}）`);
-  return res.json();
+export async function fetchSeed(id) {
+  const data = await query(`{ noun(id: "${Number(id)}") { seed { background body accessory head glasses } } }`);
+  const seed = data?.noun?.seed;
+  if (!seed) throw new Error(`Noun ${id} が見つかりません`);
+  return toSeed(seed);
+}
+
+// まとめて取る（1 回の問い合わせ）。戻り値：Map（番号 → seed）。まだない番号は入らない
+export async function fetchSeeds(ids) {
+  const list = ids.map((id) => `"${Number(id)}"`).join(', ');
+  const data = await query(`{ nouns(first: ${ids.length}, where: { id_in: [${list}] }) { id seed { background body accessory head glasses } } }`);
+  return new Map((data?.nouns || []).filter((n) => n.seed).map((n) => [Number(n.id), toSeed(n.seed)]));
+}
+
+// いちばん新しい Noun の番号（いまオークション中の Noun）。
+// nouns を id で並べると文字の順（999 が最大）になるので、オークションの開始時刻で並べる
+export async function fetchLatestId() {
+  const data = await query('{ auctions(first: 1, orderBy: startTime, orderDirection: desc) { id } }');
+  const id = Number(data?.auctions?.[0]?.id);
+  if (!Number.isInteger(id)) throw new Error('いちばん新しい Noun の番号が分かりませんでした');
+  return id;
+}
+
+// パーツの絵（約 32KB）は 1 回だけ読んで使い回す（一覧とゲームで同じもの）。失敗したら次はまた読みに行く
+let imageDataPromise = null;
+export function fetchImageData() {
+  imageDataPromise ??= fetch(IMAGE_DATA_URL)
+    .then((res) => {
+      if (!res.ok) throw new Error(`パーツの絵の取得に失敗しました（HTTP ${res.status}）`);
+      return res.json();
+    })
+    .catch((e) => { imageDataPromise = null; throw e; });
+  return imageDataPromise;
 }
 
 function hexToBytes(hex) {

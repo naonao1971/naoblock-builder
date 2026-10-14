@@ -12,6 +12,7 @@ import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealPa
 import { loadRanking, recordRanking } from './ranking.js';
 import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
 import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from './subjects.js';
+import { nounBrowser } from './nounlist.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -816,7 +817,10 @@ function categoryPanel(cat, form) {
   if (!cat.ready) {
     sec.append(...soon(cat.note));
   } else if (cat.input === 'noun') {
-    sec.append(form);
+    // 番号を入れて遊ぶ欄はそのまま。その下に 30 体の一覧（タブを開いたときに読み込む）
+    const browser = nounBrowser();
+    sec.append(form, browser.element);
+    sec.onshow = browser.show;
   } else if (cat.input === 'cards') {
     const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key).map(([name, pic]) => pictureCard(name, pic));
     if (cards.length) {
@@ -857,6 +861,7 @@ function renderCategories() {
       buttons[i].setAttribute('aria-selected', String(on));
       buttons[i].tabIndex = on ? 0 : -1;
       panels[i].hidden = !on;
+      if (on) panels[i].onshow?.();
       if (on && focus) buttons[i].focus();
     });
     if (!remember) return;

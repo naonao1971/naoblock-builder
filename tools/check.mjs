@@ -16,6 +16,7 @@ import { buildSteps, verifySteps } from '../src/steps.js';
 import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from '../src/subjects.js';
 import { gridFromPixels } from '../src/picture.js';
 import { rankingKey } from '../src/ranking.js';
+import { rangeFor, parseStart } from '../src/nounlist.js';
 
 const args = process.argv.slice(2);
 const opt = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
@@ -87,6 +88,20 @@ function checkSubjects() {
   const chibiOk = PICTURES['chibi-sakuya']?.category === 'ninja';
   console.log(`  ${chibiOk ? 'OK ' : 'NG '}チビ咲耶はクリプト忍者（ninja）`);
   ok = ok && orderOk && chibiOk;
+  // Nouns タブの一覧：見る範囲（最新 2046 として）と、開始番号の入力
+  const R = (st) => { const r = rangeFor(st, 2046); return `${r.start}〜${r.end}${r.hasPrev ? '' : '（◀ なし）'}${r.hasNext ? '' : '（▶ なし）'}`; };
+  const rangeCases = [[2046, '2017〜2046（▶ なし）'], [100, '100〜129'], [130, '130〜159'], [0, '0〜29（◀ なし）'], [2030, '2017〜2046（▶ なし）'], [5000, '2017〜2046（▶ なし）']];
+  for (const [st, want] of rangeCases) {
+    const got = R(st);
+    console.log(`  ${got === want ? 'OK ' : 'NG '}一覧：開始 ${st} → ${got}`);
+    ok = ok && got === want;
+  }
+  const small = rangeFor(0, 10);
+  const smallOk = small.start === 0 && small.end === 10 && !small.hasPrev && !small.hasNext;
+  console.log(`  ${smallOk ? 'OK ' : 'NG '}一覧：最新が 10 のとき 0〜10`);
+  const parseOk = parseStart('100') === 100 && parseStart(' 7 ') === 7 && parseStart('') === null && parseStart('abc') === null && parseStart('-3') === null && parseStart('1.5') === null;
+  console.log(`  ${parseOk ? 'OK ' : 'NG '}一覧：開始番号は数字だけ（空・数字以外・マイナス・小数は何もしない）`);
+  ok = ok && smallOk && parseOk;
   return ok;
 }
 
