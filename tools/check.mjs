@@ -5,7 +5,7 @@
 //   --image-data=path                   unpkg を使わずに image-data.json を読む
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { fetchSeed, fetchImageData, decodeNoun } from '../src/nouns.js';
+import { fetchSeed, fetchImageData, decodeNoun, hasAllParts, fetchNounSvgGrid, parseNounSvg } from '../src/nouns.js';
 import { BLOCK_COLORS, colorById } from '../src/palette.js';
 import { makePlan } from '../src/plan.js';
 import { tile, pieceCells } from '../src/tiling.js';
@@ -102,6 +102,24 @@ function checkSubjects() {
   const parseOk = parseStart('100') === 100 && parseStart(' 7 ') === 7 && parseStart('') === null && parseStart('abc') === null && parseStart('-3') === null && parseStart('1.5') === null;
   console.log(`  ${parseOk ? 'OK ' : 'NG '}一覧：開始番号は数字だけ（空・数字以外・マイナス・小数は何もしない）`);
   ok = ok && smallOk && parseOk;
+
+  // noun.pics の SVG を 32×32 に（4.5）。後に書いたものが上・塗らないマスは null・背景は最初の 100% の rect
+  const svg = '<svg width="320" height="320" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">'
+    + '<rect width="100%" height="100%" fill="#d5d7e1" />'
+    + '<rect width="40" height="10" x="100" y="210" fill="#1F1D29" />'
+    + '<rect width="10" height="10" x="120" y="210" fill="#ff0000" />'
+    + '<rect width="20" height="10" x="0" y="0" fill="#00ff00" /></svg>';
+  const g = parseNounSvg(svg);
+  const row = g.grid[21].slice(9, 15).map((c) => c ?? '.').join(' ');
+  const svgOk = g.bgHex === 'd5d7e1' && row === '. 1f1d29 1f1d29 ff0000 1f1d29 .' && g.grid[0][0] === '00ff00' && g.grid[0][1] === '00ff00' && g.grid[0][2] === null
+    && g.grid.flat().filter(Boolean).length === 6;
+  console.log(`  ${svgOk ? 'OK ' : 'NG '}noun.pics の SVG → 32×32：背景 ${g.bgHex}、21 行目 ${row}`);
+  const fake = { images: { bodies: [{}], accessories: [{}], heads: [{}], glasses: [{}] }, bgcolors: ['d5d7e1', 'e1d7d5'] };
+  const partsOk = hasAllParts({ background: 1, body: 0, accessory: 0, head: 0, glasses: 0 }, fake)
+    && !hasAllParts({ background: 0, body: 0, accessory: 0, head: 1, glasses: 0 }, fake)
+    && !hasAllParts({ background: 2, body: 0, accessory: 0, head: 0, glasses: 0 }, fake);
+  console.log(`  ${partsOk ? 'OK ' : 'NG '}パーツが image-data に全部あるか（1 つでもなければ noun.pics）`);
+  ok = ok && svgOk && partsOk;
   return ok;
 }
 
@@ -125,15 +143,19 @@ const imageData = opt('image-data')
   ? JSON.parse(readFileSync(opt('image-data'), 'utf8'))
   : await fetchImageData();
 
-const noun = decodeNoun(seed, imageData);
+// あとから足されたパーツ（image-data にない）の Noun は noun.pics の絵から（アプリと同じ）
+const fromImageData = hasAllParts(seed, imageData);
+const decode = async () => (fromImageData ? decodeNoun(seed, imageData) : (await fetchNounSvgGrid(id)).grid);
+const noun = await decode();
 const plan = makePlan(noun, { partsData });
-const again = makePlan(decodeNoun(seed, imageData), { partsData });
+const again = makePlan(await decode(), { partsData });
 const name = (cid) => colorById(cid).name;
 const yen = (n) => `${n.toLocaleString('ja-JP')}円`;
 const mark = (ok) => (ok ? 'OK ' : 'NG ');
 
 console.log(`# Noun ${id}`);
 console.log(`seed: body=${seed.body} accessory=${seed.accessory} head=${seed.head} glasses=${seed.glasses}（background=${seed.background} は使わない）`);
+console.log(`絵：${fromImageData ? 'image-data から' : 'noun.pics から（image-data にないパーツを使う Noun）'}`);
 console.log('');
 
 console.log('## 元の色 → ブロックの色');

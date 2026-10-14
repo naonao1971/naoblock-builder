@@ -1,6 +1,6 @@
 // スタート画面の Nouns タブ：30 体の一覧と範囲検索。
 // 絵は前もって用意せず、seed（30 体分を 1 回で問い合わせ）＋パーツの絵（image-data）から、その場で描く
-import { fetchSeeds, fetchLatestId, fetchImageData, decodeNoun, NOUN_SIZE } from './nouns.js';
+import { fetchSeeds, fetchLatestId, fetchImageData, nounPicture, NOUN_SIZE } from './nouns.js';
 
 export const PAGE_SIZE = 30;
 
@@ -30,19 +30,25 @@ const el = (tag, attrs = {}, ...children) => {
   return e;
 };
 
-// 1 体のカード：背景色＋32×32 の絵（canvas）と「Noun 2046」。押すと ?noun=番号
-function nounCard(id, seed, imageData) {
-  const canvas = el('canvas', { width: NOUN_SIZE, height: NOUN_SIZE });
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = `#${imageData.bgcolors[seed.background] ?? imageData.bgcolors[0]}`;
-  ctx.fillRect(0, 0, NOUN_SIZE, NOUN_SIZE);
-  decodeNoun(seed, imageData).forEach((row, y) => row.forEach((c, x) => {
-    if (c == null) return;
-    ctx.fillStyle = `#${c}`;
-    ctx.fillRect(x, y, 1, 1);
-  }));
-  canvas.setAttribute('aria-hidden', 'true');
-  return el('a', { class: 'picture-card noun-card', href: `?noun=${id}` }, canvas, `Noun ${id}`);
+// 1 体のカード：背景色＋32×32 の絵（canvas）と「Noun 2046」。押すと ?noun=番号。
+// 絵がない（読めなかった）ときは、絵の代わりに「？」（押せばゲームへ。ゲーム側でもう一度読む）
+function nounCard(id, pic) {
+  let face;
+  if (pic) {
+    face = el('canvas', { width: NOUN_SIZE, height: NOUN_SIZE });
+    const ctx = face.getContext('2d');
+    ctx.fillStyle = `#${pic.bgHex}`;
+    ctx.fillRect(0, 0, NOUN_SIZE, NOUN_SIZE);
+    pic.grid.forEach((row, y) => row.forEach((c, x) => {
+      if (c == null) return;
+      ctx.fillStyle = `#${c}`;
+      ctx.fillRect(x, y, 1, 1);
+    }));
+  } else {
+    face = el('span', { class: 'noun-unknown' }, '？');
+  }
+  face.setAttribute('aria-hidden', 'true');
+  return el('a', { class: 'picture-card noun-card', href: `?noun=${id}` }, face, `Noun ${id}`);
 }
 
 // Nouns タブの一覧。戻り値：{ element, show }（show はタブを開いたときに呼ぶ。最初の 1 回だけ読み込む）
@@ -88,7 +94,11 @@ export function nounBrowser() {
       ]);
       if (my !== token) return;
       for (const id of missing) cache.set(id, seeds.get(id) ?? null);
-      list.replaceChildren(...ids.filter((id) => cache.get(id)).map((id) => nounCard(id, cache.get(id), imageData)));
+      // 絵：あとから足されたパーツの Noun だけ noun.pics から。1 体だけ失敗しても一覧は止めず、そのカードは「？」
+      const shown = ids.filter((id) => cache.get(id));
+      const pics = await Promise.allSettled(shown.map((id) => nounPicture(id, cache.get(id), imageData)));
+      if (my !== token) return;
+      list.replaceChildren(...shown.map((id, i) => nounCard(id, pics[i].status === 'fulfilled' ? pics[i].value : null)));
       if (!list.childElementCount) message('この範囲の Noun はまだいません');
     } catch (e) {
       if (my !== token) return;

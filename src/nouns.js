@@ -90,3 +90,62 @@ export function decodeNoun(seed, imageData) {
   drawPart(grid, images.glasses[seed.glasses].data, palette);
   return grid;
 }
+
+// ---- あとからチェーン上に足されたパーツ（image-data にない）の Noun ----
+// image-data（@nouns/assets@0.10.0）にないパーツを使う Noun は、noun.pics の SVG（チェーン上の絵そのもの）から 32×32 にする
+
+export const NOUN_PICS_URL = (id) => `https://noun.pics/${Number(id)}.svg`;
+
+// seed のパーツ（と背景色）が image-data に全部あるか
+export function hasAllParts(seed, imageData) {
+  const { images, bgcolors } = imageData;
+  return images.bodies[seed.body] != null && images.accessories[seed.accessory] != null
+    && images.heads[seed.head] != null && images.glasses[seed.glasses] != null && bgcolors[seed.background] != null;
+}
+
+const attrOf = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
+const hexOf = (fill) => (fill || '').replace(/^#/, '').toLowerCase();
+
+// noun.pics の SVG（320×320、1 マス＝10px）→ { grid: 32×32（'rrggbb' か null）, bgHex }（純粋関数）
+// 最初の <rect width="100%"> の fill が背景色。ほかの <rect width x y fill> は横に並んだマス（width / 10 マス分）。
+// 書いてある順に塗る（後のものが上）。塗られないマスは null（透明）
+export function parseNounSvg(svg) {
+  const grid = Array.from({ length: NOUN_SIZE }, () => new Array(NOUN_SIZE).fill(null));
+  let bgHex = null;
+  for (const [tag] of svg.matchAll(/<rect\b[^>]*>/g)) {
+    const width = attrOf(tag, 'width');
+    const fill = hexOf(attrOf(tag, 'fill'));
+    if (width === '100%') { if (bgHex == null) bgHex = fill; continue; }
+    const w = Math.round(Number(width) / 10), x = Math.round(Number(attrOf(tag, 'x') || 0) / 10), y = Math.round(Number(attrOf(tag, 'y') || 0) / 10);
+    if (!fill || !Number.isFinite(w) || y < 0 || y >= NOUN_SIZE) continue;
+    for (let i = 0; i < w; i++) if (x + i >= 0 && x + i < NOUN_SIZE) grid[y][x + i] = fill;
+  }
+  if (bgHex == null) throw new Error('noun.pics の絵に背景色がありません');
+  return { grid, bgHex };
+}
+
+// noun.pics から読む。一度読んだ絵は覚えておく（失敗したら次はまた読みに行く）
+const svgGrids = new Map();
+export function fetchNounSvgGrid(id) {
+  const key = Number(id);
+  if (!svgGrids.has(key)) {
+    svgGrids.set(key, fetch(NOUN_PICS_URL(key))
+      .then((res) => {
+        if (!res.ok) throw new Error(`Noun ${key} の絵を読めませんでした（HTTP ${res.status}）`);
+        return res.text();
+      })
+      .then(parseNounSvg)
+      .catch((e) => { svgGrids.delete(key); throw e; }));
+  }
+  return svgGrids.get(key);
+}
+
+// 「seed → 絵」はここ 1 か所：パーツが全部 image-data にあれば今までどおり、なければ noun.pics から。
+// 戻り値：{ grid: 32×32, bgHex }（ゲームも一覧も同じものを使う）
+export async function nounPicture(id, seed, imageData) {
+  if (hasAllParts(seed, imageData)) {
+    return { grid: decodeNoun(seed, imageData), bgHex: imageData.bgcolors[seed.background] };
+  }
+  return fetchNounSvgGrid(id);
+}
+
