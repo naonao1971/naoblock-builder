@@ -24,7 +24,7 @@ const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
 const TA_MS_PER_BLOCK = 10000; // 制限時間＝ステージのブロック数 × 10 秒
 const TA_HINT_PENALTY_MS = 3000; // ヒント 1 回で +3 秒
-const PRACTICE_FALL_SLOWER = 2; // れんしゅうの落ちる速さはタイムアタックの半分
+const TA_LIVES = 3; // ♥ の数。下まで落ちきる・時間切れで 1 つ減り、0 でゲームオーバー
 
 const MODES = { practice: 'れんしゅう', timeattack: 'タイムアタック' };
 const modeLabel = (mode, guide) => `${MODES[mode]}${guide ? '・ガイドあり' : ''}`;
@@ -37,6 +37,13 @@ function show(view) {
 }
 
 // ステージのタイム（「23秒」「1分5秒」）
+// タイムアタックの経過時間（増えていく表示。「3:12.4」）
+function formatClock(ms) {
+  const tenths = Math.floor(ms / 100);
+  const sec = Math.floor(tenths / 10);
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}.${tenths % 10}`;
+}
+
 function formatStageTime(ms) {
   const sec = Math.floor(ms / 1000);
   return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分${sec % 60}秒`;
@@ -114,7 +121,7 @@ function showHelp() {
   });
 }
 
-const anyModalOpen = () => ['help', 'resume', 'sample', 'mode'].some((m) => !$(m).hidden);
+const anyModalOpen = () => ['help', 'resume', 'sample', 'mode', 'gameover'].some((m) => !$(m).hidden);
 
 // ---- モードをえらぶ（ガイドあり／なしのスイッチ付き。タイムアタックのボタンに、この端末のベストを出す） ----
 
@@ -225,7 +232,8 @@ function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }
   const { label } = subject;
   const ta = result.mode === 'timeattack';
   $('finish-title').textContent = `${label} 完成！`;
-  const rankText = ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
+  const rankText = ta && result.continued ? '（ゲームオーバーから続けたので、ランキングには入りません）'
+    : ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
   $('finish-stats').textContent = `${modeLabel(result.mode, result.guide)}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
   renderResult($('finish-result'), {
     mode: result.mode, guide: result.guide, scope: subject.scope, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
@@ -294,10 +302,12 @@ async function start(subject) {
   const ta = mode === 'timeattack';
   // 途中保存の置き場所：タイムアタックはガイドあり／なしでランキングが別なので、保存も分ける
   const slot = ta && guide ? 'timeattack-guide' : mode;
+  // れんしゅうは落ちてこない（全ステージをパズル型にする）。ブロックの分け方は同じなので、途中保存の sig は変わらない
+  const playStages = ta ? stages : stages.map((st) => ({ ...st, type: 'puzzle', fallMs: null }));
 
   let save = loadSave(subject, slot, sig);
   if (save && (save.done || save.stage > 0 || save.block > 0)) {
-    const preview = new Game({ stages, layout: plan.layout, save });
+    const preview = new Game({ stages: playStages, layout: plan.layout, save });
     if (!(await askResume(save, preview, mode, guide))) { save = null; clearSave(subject, slot); }
   } else {
     save = null;
@@ -323,8 +333,13 @@ async function start(subject) {
     clock.stageStart = sum;
   }
 
-  let game = new Game({ stages, layout: plan.layout, save: save && !save.done ? save : null });
+  let game = new Game({ stages: playStages, layout: plan.layout, save: save && !save.done ? save : null });
   let finished = !!save?.done;
+  // タイムアタックの ♥ と、ゲームオーバーから続けたか（続けた記録はランキングに入れない）
+  // ゲームオーバーの画面のまま閉じた（♥ が 0 で保存されている）ときは、「続けた」として ♥ を戻す
+  const overSaved = !!(ta && save && !save.done && save.lives === 0);
+  let lives = ta && save && !save.done && save.lives > 0 ? save.lives : TA_LIVES;
+  let continued = !!(ta && save && !save.done && (save.continued || overSaved));
   let locked = false;
   let hintMs = 0;
   let fallMs = 0;
@@ -340,7 +355,7 @@ async function start(subject) {
 
   const stageElapsed = () => clock.now - clock.stageStart;
   const stageLimit = () => (game.done ? 0 : game.stage.blocks.length * TA_MS_PER_BLOCK);
-  const fallInterval = () => (game.stage.fallMs || 800) * (ta ? 1 : PRACTICE_FALL_SLOWER);
+  const fallInterval = () => game.stage.fallMs || 800;
 
   const persist = () => {
     // タイムアタックは、ステージの最初の時点だけを残す（途中で閉じたらそのステージの最初から）
@@ -348,16 +363,31 @@ async function start(subject) {
     writeSave(subject, slot, {
       v: 1, sig, mode, ...snap, block: ta && !finished ? 0 : snap.block, done: finished,
       elapsedMs: Math.round(ta && !finished ? clock.stageStart : clock.now), stageStartMs: Math.round(clock.stageStart),
+      ...(ta ? { lives, continued } : {}),
     });
   };
 
+  // タイムアタック：合計タイムを増えていく形で出す。ステージののこり時間は細いバーで見せ、10 秒を切ったら秒数も出す
   const updateTimer = () => {
     const t = $('timer');
-    if (!ta || finished || game.done) { t.hidden = true; return; }
-    const left = Math.max(0, stageLimit() - stageElapsed());
+    const bar = $('limit');
+    if (!ta || finished || game.done) { t.hidden = true; bar.hidden = true; return; }
+    const limit = stageLimit();
+    const left = Math.max(0, limit - stageElapsed());
+    const low = left < 10000;
     t.hidden = false;
-    t.textContent = `のこり ${Math.ceil(left / 1000)}秒`;
-    t.classList.toggle('low', left < 10000);
+    t.textContent = low ? `${formatClock(clock.now)}・のこり${Math.ceil(left / 1000)}秒` : formatClock(clock.now);
+    t.classList.toggle('low', low);
+    bar.hidden = false;
+    bar.classList.toggle('low', low);
+    $('limit-bar').style.width = `${limit ? (left / limit) * 100 : 0}%`;
+  };
+
+  const updateLives = () => {
+    const el = $('lives');
+    el.hidden = !ta || finished || game.done;
+    el.textContent = '♥'.repeat(lives) + '♡'.repeat(TA_LIVES - lives);
+    el.setAttribute('aria-label', `のこり ${lives}`);
   };
 
   const updateHud = () => {
@@ -376,6 +406,7 @@ async function start(subject) {
     $('hint').hidden = !ta;
     $('pad-up').disabled = game.falling; // 落ちてくる型では上へは動かせない（タップでは飛べる）
     updateTimer();
+    updateLives();
     drawMini();
   };
 
@@ -402,13 +433,13 @@ async function start(subject) {
     finished = true;
     const total = ta ? game.stageTimes.reduce((n, t) => n + (t || 0), 0) : clock.elapsed;
     clock.elapsed = total;
-    const ranked = ta ? recordRanking(subject, total, game.stageTimes, guide) : { list: null, rank: -1 };
+    const ranked = ta && !continued ? recordRanking(subject, total, game.stageTimes, guide) : { list: null, rank: -1 };
     persist();
     updateHud();
     setTimeout(() => sound.complete(), 400);
     // 完成した盤面を少し見せてから完成画面へ
     setTimeout(() => showFinish(subject, {
-      pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank,
+      pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank, continued,
     }, { plan, partsData, steps, stages, onAgain: restart }), 1200);
   };
 
@@ -462,34 +493,76 @@ async function start(subject) {
     }
   };
 
+  // 今のステージを最初からやり直す（時間切れ・ゲームオーバーから続ける）。やり直した分の時間は合計に入れない
+  const retryStage = () => {
+    game.restartStage();
+    clock.elapsed = clock.stageStart;
+    clock.since = null;
+    clock.start();
+    resetHint();
+    fallMs = 0;
+    view.refresh();
+    updateHud();
+  };
+
+  // タイムアタック：♥ が 0 になった
+  const gameOver = () => {
+    clock.pause();
+    locked = true;
+    view.locked = true;
+    sound.nope();
+    persist();
+    updateLives();
+    $('gameover-text').textContent = `ステージ ${game.stageIndex + 1} で、ミスが ${TA_LIVES} 回になりました。続けて遊べますが、この回の記録はランキングに入りません。`;
+    $('gameover').hidden = false;
+  };
+  $('gameover-continue').onclick = () => {
+    $('gameover').hidden = true;
+    lives = TA_LIVES;
+    continued = true;
+    locked = false;
+    view.locked = false;
+    retryStage();
+    persist();
+  };
+  $('gameover-restart').onclick = () => { $('gameover').hidden = true; restart(); };
+
+  // タイムアタック：ミス（下まで落ちきった・時間切れ）で ♥ を 1 つ減らす。0 になったら true
+  const miss = () => {
+    lives = Math.max(0, lives - 1);
+    updateLives();
+    if (lives > 0) return false;
+    gameOver();
+    return true;
+  };
+
   const fallStep = () => {
     const from = { ...game.held };
     const r = game.fall();
-    if (r === 'reset') { view.shake(); sound.nope(); }
+    if (r === 'reset') {
+      view.shake();
+      sound.nope();
+      if (ta && miss()) return;
+      if (ta) toast(`ミス！ のこり ${'♥'.repeat(lives)}`, 900);
+    }
     moved(from);
     autoPlace();
   };
 
-  // タイムアタック：時間切れ → そのステージを最初からやり直し
+  // タイムアタック：時間切れ → ミス 1 回。♥ が残っていれば、そのステージを最初からやり直し
   const timeUp = () => {
+    if (miss()) return;
     clock.pause();
     sound.nope();
-    toast(`時間切れ！ ステージ ${game.stageIndex + 1} をもう一度`, CLEAR_PAUSE_MS + 200);
-    lockFor(CLEAR_PAUSE_MS + 200, () => {
-      game.restartStage();
-      clock.elapsed = clock.stageStart; // やり直した分は合計に入れない
-      clock.since = null;
-      clock.start();
-      resetHint();
-      fallMs = 0;
-      view.refresh();
-      updateHud();
-    });
+    toast(`時間切れ！ のこり ${'♥'.repeat(lives)}`, CLEAR_PAUSE_MS + 200);
+    lockFor(CLEAR_PAUSE_MS + 200, retryStage);
   };
 
   const restart = () => {
     clearSave(subject, slot);
-    game = new Game({ stages, layout: plan.layout });
+    lives = TA_LIVES;
+    continued = false;
+    game = new Game({ stages: playStages, layout: plan.layout });
     view.game = game;
     finished = false;
     locked = false;

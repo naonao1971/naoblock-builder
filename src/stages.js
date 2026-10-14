@@ -4,12 +4,13 @@ import { plateLayout } from './tiling.js';
 import { platesOf, plateName } from './steps.js';
 
 // ステージの型と落ちる速さ（仮。遊んで調整する）
+// タイムアタックはステージ 1 から落ちてきて、だんだん速くなる。れんしゅうは落ちてこない（src/main.js で puzzle 型にする）
 export const STAGE_TYPES = [
-  { type: 'puzzle', fallMs: null }, // 1 左上
-  { type: 'puzzle', fallMs: null }, // 2 右上
-  { type: 'fall', fallMs: 800 },    // 3 左下
-  { type: 'fall', fallMs: 800 },    // 4 右下
-  { type: 'fall', fallMs: 600 },    // 5 つなぎ（少し速い）
+  { type: 'fall', fallMs: 1000 }, // 1 左上
+  { type: 'fall', fallMs: 850 },  // 2 右上
+  { type: 'fall', fallMs: 700 },  // 3 左下
+  { type: 'fall', fallMs: 600 },  // 4 右下
+  { type: 'fall', fallMs: 500 },  // 5 つなぎ
 ];
 
 // パーツがどのステージに入るか（プレートの番号、またがるなら plateCount＝つなぎ）
