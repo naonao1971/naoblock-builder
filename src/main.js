@@ -8,7 +8,7 @@ import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
-import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, downloadBlob, renderRealParts, renderResult } from './finish.js';
+import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
 import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from './subjects.js';
@@ -19,7 +19,6 @@ const PLATE_HEX = 'd9d6cf';
 const HELP_KEY = 'naoblock:help-seen-game';
 const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく）
 const TAB_KEY = 'naoblock:tab'; // スタート画面で開いていたタブ（遊んで戻ったとき、同じタブを開く）
-const HINT_MS = 5000; // れんしゅう：5 秒迷ったら正解の場所が光る
 const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
 const TA_MS_PER_BLOCK = 10000; // 制限時間＝ステージのブロック数 × 10 秒
@@ -110,8 +109,9 @@ function helpSeen() {
   try { return localStorage.getItem(HELP_KEY) === '1'; } catch { return false; }
 }
 
-function showHelp() {
+function showHelp(closeLabel = 'はじめる') {
   return new Promise((resolve) => {
+    $('help-close').textContent = closeLabel;
     $('help').hidden = false;
     $('help-close').onclick = () => {
       $('help').hidden = true;
@@ -121,7 +121,7 @@ function showHelp() {
   });
 }
 
-const anyModalOpen = () => ['help', 'resume', 'sample', 'mode', 'gameover'].some((m) => !$(m).hidden);
+const anyModalOpen = () => ['help', 'resume', 'sample', 'mode', 'gameover', 'menu'].some((m) => !$(m).hidden);
 
 // ---- モードをえらぶ（ガイドあり／なしのスイッチ付き。タイムアタックのボタンに、この端末のベストを出す） ----
 
@@ -241,8 +241,24 @@ function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }
   });
   const canvas = $('finish-canvas');
   drawFinishImage(canvas, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX });
-  $('save-image').onclick = () => downloadCanvas(canvas, subject.fileName);
-  $('share-x').href = shareIntentUrl(subject.shareText(result), subject.url(location.href));
+  // X にシェア：完成図の画像を付ける（画像は先に作っておく）
+  let shareBlob = null;
+  canvas.toBlob((b) => { shareBlob = b; }, 'image/png');
+  $('share-note').hidden = true;
+  $('share-x').onclick = async () => {
+    try {
+      const blob = shareBlob || await new Promise((r) => canvas.toBlob(r, 'image/png'));
+      const how = await shareWithImage({ text: subject.shareText(result), url: subject.url(location.href), blob, fileName: subject.fileName });
+      if (how === 'saved') {
+        $('share-note').textContent = '画像を保存しました。投稿画面に添付してください。';
+        $('share-note').hidden = false;
+      }
+    } catch (e) {
+      console.error(e);
+      $('share-note').textContent = `シェアできませんでした：${e.message}`;
+      $('share-note').hidden = false;
+    }
+  };
   renderRealParts($('real-parts'), plan, partsData);
   // 組立図：アプリがページの絵を描き、PDF もプリンターも同じ絵から作る。
   // 「実物で組むなら」を開いたら先に作り始める（ボタンを押したときにすぐ出せるように）
@@ -340,7 +356,9 @@ async function start(subject) {
     elapsed: save?.elapsedMs || 0,
     stageStart: save?.stageStartMs || 0,
     since: null,
-    start() { if (this.since == null) this.since = performance.now(); },
+    held: false, // ⏸ メニューを開いている間は動かさない（閉じたら動かす）
+    wanted: false,
+    start() { if (this.held) { this.wanted = true; return; } if (this.since == null) this.since = performance.now(); },
     pause() { if (this.since != null) { this.elapsed += performance.now() - this.since; this.since = null; } },
     get now() { return this.elapsed + (this.since != null ? performance.now() - this.since : 0); },
   };
@@ -359,7 +377,6 @@ async function start(subject) {
   let lives = ta && save && !save.done && save.lives > 0 ? save.lives : TA_LIVES;
   let continued = !!(ta && save && !save.done && (save.continued || overSaved));
   let locked = false;
-  let hintMs = 0;
   let fallMs = 0;
 
   const view = new GameView($('board-wrap'), $('board'), {
@@ -428,7 +445,9 @@ async function start(subject) {
     drawMini();
   };
 
-  const resetHint = () => { hintMs = 0; view.hint = false; };
+  // 黄色い枠：れんしゅうはブロックが出た瞬間から出す。タイムアタックは 💡 を押したときだけ
+  const resetHint = () => { view.hint = !ta; };
+  resetHint();
 
   // 操作の共通の入口：止めている間や案内を出している間は受け付けない
   const act = (fn) => {
@@ -625,18 +644,91 @@ async function start(subject) {
   tapButton($('rotate-left'), () => rotate(-1));
   tapButton($('rotate-right'), () => rotate(1));
   tapButton($('place'), () => act(place));
-  // タイムアタック：ヒントボタン（押すと正しい場所が光る。1 回 +3 秒）
-  tapButton($('hint'), () => act(() => {
-    if (view.hint) return; // もう光っているときは数えない
+  // ---- ⏸ メニュー：開いている間はゲームを止める ----
+  const menuEl = $('menu');
+  const showMenuPart = (confirmText) => {
+    $('menu-main').hidden = !!confirmText;
+    $('menu-confirm').hidden = !confirmText;
+    $('menu-confirm-text').textContent = confirmText || '';
+  };
+  const syncMenu = () => {
+    $('hint').hidden = !ta;
+    const noLives = ta && lives <= 1;
+    $('menu-retry').disabled = noLives;
+    $('menu-retry').textContent = noLives ? '↺ やり直す（♥ が足りません）' : '↺ やり直す';
+  };
+  const openMenu = () => {
+    if (locked || finished || game.done || $('view-play').hidden || anyModalOpen()) return;
+    clock.wanted = clock.since != null;
+    clock.pause();
+    clock.held = true;
+    syncMenu();
+    showMenuPart(null);
+    menuEl.hidden = false;
+  };
+  const closeMenu = () => {
+    menuEl.hidden = true;
+    clock.held = false;
+    if (clock.wanted) clock.start();
+    clock.wanted = false;
+    last = performance.now();
+  };
+  $('pause').onclick = () => openMenu();
+  $('menu-continue').onclick = () => closeMenu();
+  $('menu-retry').onclick = () => showMenuPart(ta
+    ? `このステージを最初からやり直しますか？（♥ が 1 つ減って、タイムはステージの最初にもどります）`
+    : 'このステージを最初からやり直しますか？');
+  $('menu-confirm-no').onclick = () => showMenuPart(null);
+  $('menu-confirm-yes').onclick = () => {
+    closeMenu();
+    if (ta) {
+      // タイムアタック（仮）：時間切れと同じ扱い。♥ が 1 つ減って、タイムはステージの最初にもどる
+      if (lives <= 1) return;
+      lives -= 1;
+      updateLives();
+      retryStage();
+      toast(`やり直し のこり ${'♥'.repeat(lives)}`, 900);
+    } else {
+      game.restartStage();
+      resetHint();
+      fallMs = 0;
+      view.refresh();
+      updateHud();
+    }
+    persist();
+  };
+  $('menu-quit').onclick = () => {
+    // 途中までの記録は今どおり保存して、スタート画面へ（次に同じ絵を選ぶと「続きから」）
+    clock.held = false;
+    if (!finished && !game.done) persist();
+    location.href = './';
+  };
+  // タイムアタック：ヒント（押すと正しい場所が光る。1 回 +3 秒。もう光っているときは数えない）
+  $('hint').onclick = () => {
+    closeMenu();
+    if (!ta || view.hint) return;
     view.hint = true;
     clock.elapsed += TA_HINT_PENALTY_MS;
     toast('ヒント ＋3秒', 700);
     updateTimer();
-  }));
+  };
+  // 遊び方：閉じたら ⏸ メニューにもどる
+  $('help-open').onclick = async () => {
+    menuEl.hidden = true;
+    await showHelp('閉じる');
+    menuEl.hidden = false;
+  };
 
   // ---- キーボード（矢印・Z / X・スペース） ----
   window.addEventListener('keydown', (e) => {
-    if ($('view-play').hidden || anyModalOpen()) return;
+    if ($('view-play').hidden) return;
+    // Esc：⏸ メニューを開く／閉じる
+    if (e.key === 'Escape') {
+      if (!menuEl.hidden) { e.preventDefault(); if (!$('menu-confirm').hidden) showMenuPart(null); else closeMenu(); }
+      else if (!anyModalOpen()) { e.preventDefault(); openMenu(); }
+      return;
+    }
+    if (anyModalOpen()) return;
     const keys = {
       ArrowLeft: () => move(-1, 0), ArrowRight: () => move(1, 0), ArrowUp: () => move(0, -1), ArrowDown: () => move(0, 1),
       z: () => rotate(-1), Z: () => rotate(-1), x: () => rotate(1), X: () => rotate(1),
@@ -656,11 +748,6 @@ async function start(subject) {
     const dt = now - last;
     last = now;
     if (document.hidden || locked || finished || game.done || anyModalOpen() || $('view-play').hidden) return;
-    // れんしゅう：5 秒迷ったら正解の場所が光る
-    if (!ta) {
-      hintMs += dt;
-      if (hintMs >= HINT_MS) view.hint = true;
-    }
     // 落ちてくる型：一定の間隔で 1 マスずつ落とす（れんしゅうは最初の操作のあとから）
     if (game.falling && (ta || clock.since != null)) {
       fallMs += dt;
@@ -808,7 +895,7 @@ function init() {
   showVersion();
   const muteBtn = $('mute');
   const syncMute = () => {
-    muteBtn.textContent = sound.isMuted() ? '🔇' : '🔊';
+    muteBtn.textContent = sound.isMuted() ? '🔇 音（いまは消音）' : '🔊 音';
     muteBtn.setAttribute('aria-label', sound.isMuted() ? '音を出す' : '消音');
     muteBtn.setAttribute('aria-pressed', String(sound.isMuted()));
   };
@@ -816,7 +903,6 @@ function init() {
   syncMute();
 
   $('loading-retry').onclick = () => location.reload();
-  $('help-open').onclick = () => showHelp();
 
   const subject = subjectFromUrl(location.search);
   if (subject) {

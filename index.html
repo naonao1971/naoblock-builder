@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja" data-version="29">
+<html lang="ja" data-version="31">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -51,7 +51,7 @@
       <div class="hud-main">
         <div class="hud-info">
           <div class="hud-row">
-            <a class="brand" href="./" title="別の絵で遊ぶ">naoblock</a>
+            <span class="brand">naoblock</span>
             <span id="play-noun"></span>
             <span id="mode-badge" class="mode-badge"></span>
             <span id="lives" class="lives" hidden></span>
@@ -65,6 +65,7 @@
           <span class="next-title">つぎ</span>
           <canvas id="next-canvas"></canvas>
         </div>
+        <button id="pause" type="button" class="pause-btn" aria-label="一時停止（メニュー）" title="一時停止（Esc）">⏸</button>
       </div>
       <div class="progress-row">
         <div class="progress"><div id="progress-bar"></div></div>
@@ -86,11 +87,6 @@
         <button type="button" class="pad left" data-dx="-1" data-dy="0" aria-label="左へ">◀</button>
         <button type="button" class="pad right" data-dx="1" data-dy="0" aria-label="右へ">▶</button>
         <button type="button" class="pad down" data-dx="0" data-dy="1" aria-label="下へ">▼</button>
-      </div>
-      <div class="tools">
-        <button id="mute" type="button" class="small" aria-label="消音">🔊</button>
-        <button id="help-open" type="button" class="small" aria-label="遊び方">？</button>
-        <button id="hint" type="button" class="small hint" aria-label="ヒント（+3秒）" hidden>💡</button>
       </div>
       <div class="actions">
         <div class="rotates">
@@ -131,7 +127,7 @@
         <p class="guide-note muted">ガイドありは、置くブロックの形が盤面に薄く出ます（パズルの台紙のように）</p>
         <button id="mode-practice" type="button" class="mode-btn primary">
           <strong>れんしゅう</strong>
-          <span>時間制限なし・ブロックは落ちてきません。5 秒迷うと、置く場所が光ります</span>
+          <span>時間制限なし・ブロックは落ちてきません。置く場所が黄色く光ります</span>
         </button>
         <button id="mode-timeattack" type="button" class="mode-btn">
           <strong>タイムアタック</strong>
@@ -147,14 +143,37 @@
         <ul class="help-list">
           <li>十字キー（PC は矢印キー）でブロックを動かし、回転ボタン（Z / X）で向きを合わせて、「はめる」（スペース）で置きます</li>
           <li>盤面のマスをタップすると、ブロックがそこへ飛びます。持っているブロックをタップすると回ります</li>
-          <li>正しい場所に重なると、ブロックの縁が光ります。れんしゅうでは、5 秒迷うと置く場所が光ります</li>
+          <li>正しい場所に重なると、ブロックの縁が光ります。れんしゅうは、置く場所が黄色く光ります</li>
           <li>タイムアタックは合計タイムを競います。ブロックが落ちてきて、だんだん速くなります（▼ で速く落とせます）。正しい場所と向きに重なると、そのままはまります</li>
           <li>下まで落ちきるか、ステージの時間切れ（上の細いバー）で ♥ が 1 つ減ります。0 でゲームオーバー。続けられますが、ランキングには入りません</li>
           <li>ガイドありにすると、置くブロックの形が盤面に薄い色で出ます。タイムアタックのランキングは、ガイドあり・なしで別々です</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
+          <li>右上の ⏸（PC は Esc）でゲームを止めて、つづける・やり直す・やめる・音・遊び方をえらべます。タイムアタックのヒント 💡 もここです</li>
         </ul>
         <div class="buttons">
           <button id="help-close" type="button" class="primary">はじめる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⏸ メニュー：開いている間はゲームが止まる -->
+    <div id="menu" class="modal" hidden>
+      <div class="card menu-card" role="dialog" aria-label="一時停止">
+        <h2>一時停止</h2>
+        <div id="menu-main" class="menu-buttons">
+          <button id="menu-continue" type="button" class="primary">▶ つづける</button>
+          <button id="menu-retry" type="button">↺ やり直す</button>
+          <button id="menu-quit" type="button">⏹ やめる</button>
+          <button id="hint" type="button" hidden>💡 ヒント（+3 秒）</button>
+          <button id="mute" type="button">🔊 音</button>
+          <button id="help-open" type="button">？ 遊び方</button>
+        </div>
+        <div id="menu-confirm" class="menu-confirm" hidden>
+          <p id="menu-confirm-text"></p>
+          <div class="buttons">
+            <button id="menu-confirm-yes" type="button" class="primary">はい</button>
+            <button id="menu-confirm-no" type="button">いいえ</button>
+          </div>
         </div>
       </div>
     </div>
@@ -188,10 +207,9 @@
     <canvas id="finish-canvas" aria-label="完成図"></canvas>
     <section id="finish-result" class="finish-result"></section>
     <div class="finish-actions">
-      <button id="save-image" type="button" class="primary">画像を保存</button>
-      <a id="share-x" class="button" target="_blank" rel="noopener">X にシェア</a>
+      <button id="share-x" type="button" class="primary">X にシェア</button>
     </div>
-    <p id="share-note" class="note">X には画像が自動で付かないので、「画像を保存」してから貼ってね。</p>
+    <p id="share-note" class="note" hidden></p>
 
     <details class="real">
       <summary>実物で組むなら</summary>
