@@ -11,7 +11,7 @@ import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { buildPrintout } from './print.js';
-import { subjectFromUrl, saveKey, PICTURES } from './subjects.js';
+import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from './subjects.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -608,18 +608,55 @@ function showVersion() {
   }
 }
 
-// スタート画面の「ドット絵で遊ぶ」：PICTURES から絵のボタンを作る
-function renderPictureList() {
-  const list = $('picture-list');
-  list.replaceChildren(...Object.entries(PICTURES).map(([name, pic]) => {
-    const a = document.createElement('a');
-    a.className = 'picture-card';
-    a.href = `?pic=${encodeURIComponent(name)}`;
-    const img = document.createElement('img');
-    img.src = pic.file;
-    img.alt = '';
-    a.append(img, pic.label);
-    return a;
+// スタート画面：CATEGORIES の順に、見出し＋中身（番号の欄・絵のカード・準備中）を並べる
+function pictureCard(name, pic) {
+  const a = document.createElement('a');
+  a.className = 'picture-card';
+  a.href = `?pic=${encodeURIComponent(name)}`;
+  const img = document.createElement('img');
+  img.src = pic.file;
+  img.alt = '';
+  a.append(img, pic.label);
+  return a;
+}
+
+function renderCategories() {
+  const box = $('categories');
+  const form = $('noun-form');
+  const soon = (note) => {
+    const p = document.createElement('p');
+    p.className = 'soon';
+    p.textContent = '準備中';
+    if (!note) return [p];
+    const n = document.createElement('p');
+    n.className = 'soon-note';
+    n.textContent = note;
+    return [p, n];
+  };
+  box.replaceChildren(...CATEGORIES.map((cat) => {
+    const sec = document.createElement('section');
+    sec.className = `category category-${cat.key}`;
+    const h = document.createElement('h2');
+    h.textContent = cat.label;
+    sec.append(h);
+    if (!cat.ready) {
+      sec.append(...soon(cat.note));
+    } else if (cat.input === 'noun') {
+      sec.append(form);
+    } else if (cat.input === 'cards') {
+      const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key).map(([name, pic]) => pictureCard(name, pic));
+      if (cards.length) {
+        const list = document.createElement('div');
+        list.className = 'picture-list';
+        list.append(...cards);
+        sec.append(list);
+      } else {
+        sec.append(...soon(cat.note));
+      }
+    } else {
+      sec.append(...soon(cat.note));
+    }
+    return sec;
   }));
 }
 
@@ -641,7 +678,7 @@ function init() {
   if (subject) {
     start(subject);
   } else {
-    renderPictureList();
+    renderCategories();
     show('start');
   }
 }

@@ -13,10 +13,22 @@ import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
 import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
 
-// ドット絵の一覧（URL に出る名前 → 画像と画面に出す名前）。
-// 絵を足すときは、画像を data/samples/ に置いて、ここに 1 行足すだけ（スタート画面のボタンも自動でできる）
+// スタート画面のカテゴリー（この順に並べる）
+//   input：'noun'（番号を入れる）| 'cards'（カードから選ぶ）| 'url'（URL を入れる）
+//   ready：false なら「準備中」と出すだけ（note があれば一言そえる）。
+//   カードのカテゴリーで絵が 1 つもないときも「準備中」
+export const CATEGORIES = [
+  { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
+  { key: 'ninja', label: 'クリプト忍者', input: 'cards', ready: true },
+  { key: 'cnp', label: 'CNP', input: 'cards', ready: true },
+  { key: 'qr', label: 'nanoQR', input: 'url', ready: false, note: 'URL を入れると、QR コードをブロックで組み立てられます' }, // 説明文は仮
+];
+
+// 絵の一覧（URL に出る名前 → 画像・画面に出す名前・カテゴリー）。
+// 絵を足すときは、画像を data/samples/ に置いて、ここに 1 行足すだけ（スタート画面のカードも自動でできる）。
+// category は CATEGORIES の input: 'cards' のどれか。カテゴリーは URL・保存・ランキングには入らない
 export const PICTURES = {
-  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶' },
+  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶', category: 'ninja' },
 };
 // 古い URL の名前 → 今の名前（?pic=1・?sample=1 のため）
 const PICTURE_ALIASES = { 1: 'chibi-sakuya' };
