@@ -10,7 +10,7 @@
 //   url(href)：この題材を開く URL
 //   fileName：完成画像を保存するときの名前
 //   pdfName：組立図の PDF を保存するときの名前
-import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
+import { fetchSeed, fetchImageData, nounPicture } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
 import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
 
@@ -94,8 +94,9 @@ export function nounSubject(n) {
     label: `Noun ${id}`,
     scope: 'この Noun',
     async load() {
+      // あとから足されたパーツの Noun は noun.pics から（src/nouns.js の nounPicture）
       const [seed, imageData] = await Promise.all([fetchSeed(id), fetchImageData()]);
-      return { grid: decodeNoun(seed, imageData), bgHex: imageData.bgcolors[seed.background] ?? imageData.bgcolors[0] };
+      return nounPicture(id, seed, imageData);
     },
     originalNote: '元絵：Nouns の本来の色と背景色',
     shareText: (r) => shareText(id, r.pieces, r.elapsedMs, r.mode, r.guide),

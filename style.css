@@ -91,6 +91,17 @@ h1 small { font-family: var(--font-display); font-size: 1.15rem; color: var(--mu
 }
 .picture-card img { width: 88px; height: 88px; object-fit: contain; image-rendering: pixelated; }
 .picture-card:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--fg); }
+.noun-list { gap: 10px; }
+.noun-card canvas { width: 88px; height: 88px; image-rendering: pixelated; display: block; }
+.noun-unknown { display: flex; align-items: center; justify-content: center; width: 88px; height: 88px; background: var(--line); color: var(--muted); font-size: 2.4rem; font-weight: 900; }
+.noun-browse { margin-top: 20px; }
+.noun-range-title { margin: 0 0 8px; font-size: 1.05rem; }
+.noun-range-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.noun-range-form input { font: inherit; width: 6em; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
+.noun-range-form button, .noun-nav-btn { min-height: 48px; min-width: 64px; }
+.noun-nav { display: flex; gap: 8px; margin: 0 0 12px; }
+.noun-nav-btn { flex: 1; }
+.noun-list-message { margin: 8px 0; color: var(--muted); }
 
 .legal { color: var(--muted); font-size: 0.75rem; margin-top: 32px; }
 .legal p { margin: 2px 0; }
