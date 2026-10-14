@@ -246,11 +246,11 @@ function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }
   window.onbeforeprint = () => { if (!$('view-finish').hidden) preparePrint(); };
   $('print-guide').onclick = () => { preparePrint(); window.print(); };
   $('finish-again').onclick = () => {
-    document.title = `${label} を組み立てる｜ナオブロック`;
+    document.title = `${label} を組み立てる｜naoblock`;
     show('play');
     onAgain();
   };
-  document.title = `${label} 完成！｜ナオブロック`;
+  document.title = `${label} 完成！｜naoblock`;
   show('finish');
   window.scrollTo(0, 0);
 }
@@ -278,7 +278,7 @@ async function start(subject) {
   const steps = buildSteps(plan.pieces, plan.layout);
   const stages = buildStages(buildBlocks(plan.pieces, plan.layout), plan.layout);
   const sig = signature(stages);
-  document.title = `${label} を組み立てる｜ナオブロック`;
+  document.title = `${label} を組み立てる｜naoblock`;
   $('play-noun').textContent = label;
 
   sample.completed = completedPixels(plan.board, PLATE_HEX);

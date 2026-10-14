@@ -64,6 +64,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .start-header { display: block; width: 100%; height: auto; margin: 0 0 16px; border-radius: 14px; background: #13235a; }
 h1 { margin: 0 0 4px; font-size: 1.7rem; font-weight: 900; }
 h1 small { font-family: var(--font-display); font-size: 1.15rem; color: var(--muted); font-weight: 900; letter-spacing: 0.02em; }
+/* スタート画面のアプリ名。naoblock.jp のロゴと同じ Londrina Solid */
+.app-title { font-family: var(--font-display); font-size: 2.6rem; line-height: 1.1; letter-spacing: 0.02em; }
 .lead { font-weight: 700; }
 .lead { color: var(--muted); }
 /* Londrina Solid は字幅が細く小文字も低いので、日本語と混ざる行では英字だけ少し大きくして揃える（naoblock.jp と同じ） */
