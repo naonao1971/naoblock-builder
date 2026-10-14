@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>ogp.png を作る</title>
+  <style>
+    body { margin: 0; background: #888; font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
+    canvas { display: block; }
+    p { color: #fff; margin: 8px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <!--
+    シェアしたときのカード画像（ogp.png・1200×630）を作るページ。
+    リポジトリのいちばん上でサーバーを立てて（例：python3 -m http.server）、/tools/ogp.html を開き、
+    「ogp.png を保存」で保存した画像を、リポジトリのいちばん上の ogp.png に置き換える。
+    左：Noun の完成図（?seed=body,accessory,head,glasses で変えられる）、右：チビ咲耶の完成図。
+  -->
+  <canvas id="ogp" width="1200" height="630"></canvas>
+  <p><button id="save" type="button">ogp.png を保存</button> <span id="status">作っています…</span></p>
+  <script type="module">
+    import { fetchImageData, decodeNoun } from '../src/nouns.js';
+    import { loadPictureGrid } from '../src/picture.js';
+    import { makePlan } from '../src/plan.js';
+    import { drawFinishedBoard } from '../src/board.js';
+    import { downloadCanvas } from '../src/finish.js';
+    import { PICTURES } from '../src/subjects.js';
+
+    const PLATE_HEX = 'd9d6cf'; // src/main.js と同じ（仮の色）
+    const W = 1200, H = 630;
+    const CELL = 10; // 40 マス × 10px = 400px
+    const seedText = new URLSearchParams(location.search).get('seed') || '14,70,94,15';
+    const [body, accessory, head, glasses] = seedText.split(',').map(Number);
+
+    const canvas = document.getElementById('ogp');
+    const ctx = canvas.getContext('2d');
+
+    function board(grid, x, y) {
+      const plan = makePlan(grid);
+      const size = plan.layout.width * CELL;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.fillRect(x + 6, y + 8, size, size); // 影
+      ctx.translate(x, y);
+      drawFinishedBoard(ctx, { layout: plan.layout, pieces: plan.pieces, plateHex: PLATE_HEX, scale: CELL });
+      ctx.restore();
+    }
+
+    const imageData = await fetchImageData();
+    const noun = decodeNoun({ body, accessory, head, glasses }, imageData);
+    const chibi = (await loadPictureGrid(`../${PICTURES['chibi-sakuya'].file}`)).grid;
+
+    ctx.fillStyle = '#faf8f3';
+    ctx.fillRect(0, 0, W, H);
+    // 見出し
+    ctx.fillStyle = '#222';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 60px system-ui, -apple-system, "Hiragino Sans", sans-serif';
+    ctx.fillText('ナオブロック', 160, 84);
+    const titleW = ctx.measureText('ナオブロック').width;
+    ctx.fillStyle = '#888';
+    ctx.font = '30px system-ui, -apple-system, "Hiragino Sans", sans-serif';
+    ctx.fillText('naoblock', 160 + titleW + 18, 84);
+    ctx.fillStyle = '#555';
+    ctx.font = '26px system-ui, -apple-system, "Hiragino Sans", sans-serif';
+    ctx.fillText('絵をえらんで、ブロックで組み立てるパズル', 162, 130);
+    // 完成図 2 枚
+    board(noun, 160, 180);
+    board(chibi, W - 160 - 400, 180);
+
+    document.getElementById('status').textContent = `できました（Noun の seed：${seedText}）`;
+    document.getElementById('save').onclick = () => downloadCanvas(canvas, 'ogp.png');
+    document.body.dataset.ready = '1';
+  </script>
+</body>
+</html>
