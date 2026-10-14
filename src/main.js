@@ -8,9 +8,9 @@ import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
-import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, renderRealParts, renderResult } from './finish.js';
+import { formatTime, shareIntentUrl, drawFinishImage, downloadCanvas, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
-import { buildPrintout } from './print.js';
+import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
 import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from './subjects.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
@@ -244,15 +244,33 @@ function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }
   $('save-image').onclick = () => downloadCanvas(canvas, subject.fileName);
   $('share-x').href = shareIntentUrl(subject.shareText(result), subject.url(location.href));
   renderRealParts($('real-parts'), plan, partsData);
-  // 印刷用の組立図は、印刷するときに作る（Ctrl+P / ⌘P で印刷したときも）
-  let printReady = false;
-  const preparePrint = () => {
-    if (printReady) return;
-    buildPrintout($('print-root'), { label, plan, partsData, steps, plateHex: PLATE_HEX, url: subject.url(location.href) });
-    printReady = true;
+  // 組立図：アプリがページの絵を描き、PDF もプリンターも同じ絵から作る。
+  // 「実物で組むなら」を開いたら先に作り始める（ボタンを押したときにすぐ出せるように）
+  const printOpts = { label, plan, partsData, steps, plateHex: PLATE_HEX, url: subject.url(location.href) };
+  let pages = null; // できあがったページの絵
+  let making = null;
+  const preparePages = () => (making ??= renderPages(printOpts).then((p) => (pages = p)));
+  const status = (msg) => { $('print-status').hidden = !msg; $('print-status').textContent = msg || ''; };
+  const busy = async (btn, msg, work) => {
+    btn.disabled = true;
+    status(msg);
+    try { await work(); status(''); } catch (e) { console.error(e); status(`うまくいきませんでした：${e.message}`); } finally { btn.disabled = false; }
   };
-  window.onbeforeprint = () => { if (!$('view-finish').hidden) preparePrint(); };
-  $('print-guide').onclick = () => { preparePrint(); window.print(); };
+  $('print-root').replaceChildren();
+  document.querySelector('.real').ontoggle = (e) => { if (e.target.open) setTimeout(preparePages, 50); };
+  $('save-pdf').onclick = () => busy($('save-pdf'), '組立図の PDF を作っています…', async () => {
+    downloadBlob(pagesToPdf(await preparePages()), subject.pdfName);
+  });
+  $('print-guide').onclick = () => busy($('print-guide'), '印刷の準備をしています…', async () => {
+    await fillPrintRoot($('print-root'), await preparePages());
+    window.print();
+  });
+  // ⌘P / Ctrl+P で印刷の画面が先に開いたとき：できていればそれを、まだならその場で作る
+  window.onbeforeprint = () => {
+    if ($('view-finish').hidden || $('print-root').childElementCount) return;
+    const now = pages || renderPagesNow(printOpts);
+    $('print-root').replaceChildren(...now.map((p) => Object.assign(document.createElement('img'), { src: p.dataUrl, alt: '' })));
+  };
   $('finish-again').onclick = () => {
     document.title = `${label} を組み立てる｜naoblock`;
     show('play');

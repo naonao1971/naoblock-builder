@@ -1,51 +1,20 @@
-/* 印刷用の組立図（A4 縦）。画面の部品は印刷せず、#print-root だけを出す */
-@page { size: A4 portrait; margin: 12mm; }
+/* 印刷用の組立図（A4 縦）。画面の部品は印刷せず、#print-root だけを出す。
+   中身はアプリが描いたページの絵（余白 12mm は絵の中に描き込み済み）なので、用紙の余白は 0 にして絵を用紙いっぱいに置く */
+@page { size: A4 portrait; margin: 0; }
 
-html, body { background: #fff !important; height: auto; }
+html, body { background: #fff !important; height: auto; margin: 0 !important; padding: 0 !important; }
 body > :not(#print-root) { display: none !important; }
-#print-root { display: block !important; color: #000; font-size: 10.5pt; line-height: 1.5; }
+#print-root { display: block !important; margin: 0; padding: 0; }
+#print-root img {
+  display: block;
+  /* 297mm ちょうどだと端数で白紙のページが増えることがあるので、少しだけ小さく（縦横比はそのまま） */
+  width: auto;
+  height: 296mm;
+  margin: 0 auto;
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+}
+#print-root img:last-child { break-after: auto; page-break-after: auto; }
 
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-.print-page { break-after: page; }
-.print-page:last-child { break-after: auto; }
-
-/* 表紙 */
-.print-cover { text-align: center; }
-.print-brand { margin: 0; font-size: 11pt; color: #444; }
-.print-cover h1 { margin: 2mm 0 5mm; font-size: 28pt; }
-.print-cover-figure img { width: 150mm; height: 150mm; image-rendering: pixelated; border: 0.3mm solid #999; }
-.print-facts { margin: 6mm auto 0; border-collapse: collapse; text-align: left; font-size: 11pt; }
-.print-facts th { padding: 1.5mm 4mm 1.5mm 0; white-space: nowrap; color: #333; vertical-align: top; }
-.print-facts td { padding: 1.5mm 0; }
-.print-url { word-break: break-all; }
-.print-legal { margin-top: 8mm; font-size: 8pt; color: #555; }
-
-/* 部品リスト・買い物リスト */
-.print-section h2, .print-steps h2 { font-size: 15pt; margin: 0 0 2mm; border-bottom: 0.5mm solid #000; padding-bottom: 1mm; }
-.print-section + .print-section { margin-top: 8mm; }
-.print-note { margin: 1mm 0 2mm; font-size: 9pt; color: #333; word-break: break-all; }
-.print-warn { margin: 2mm 0; padding: 2mm 3mm; border: 0.4mm solid #000; font-weight: bold; }
-.print-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
-.print-table th, .print-table td { padding: 1mm 2mm; border-bottom: 0.2mm solid #bbb; text-align: left; }
-.print-table th.num, .print-table td.num { text-align: right; white-space: nowrap; }
-.print-table td.check, .print-table th.check { width: 8mm; text-align: center; font-size: 12pt; }
-.print-table tr { break-inside: avoid; }
-.print-table thead { display: table-header-group; }
-.print-table tfoot td { font-weight: bold; border-bottom: 0; }
-.swatch {
-  display: inline-block;
-  width: 3.5mm;
-  height: 3.5mm;
-  border: 0.2mm solid #000;
-  vertical-align: -0.6mm;
-  margin-right: 1.5mm;
-}
-
-/* 組立手順：1 ページに 2×2 */
-.print-step-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm 6mm; }
-.print-step { break-inside: avoid; border: 0.3mm solid #999; padding: 2.5mm; }
-.print-step-title { margin: 0 0 1.5mm; font-weight: bold; font-size: 10pt; }
-.print-step-figure img { display: block; width: 100%; max-width: 84mm; height: auto; margin: 0 auto; image-rendering: pixelated; }
-.print-step-parts { margin: 1.5mm 0 0; font-size: 9.5pt; }
-.print-step .print-note { margin: 0.5mm 0 0; }

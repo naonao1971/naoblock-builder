@@ -88,16 +88,18 @@ export function drawFinishImage(canvas, { layout, pieces, plateHex }) {
   ctx.fillText('naoblock', canvas.width - IMAGE_PAD, IMAGE_PAD + boardH + IMAGE_FOOT / 2);
 }
 
+// Blob をファイルとして保存（iPhone では PDF のプレビューが開き、共有ボタンから「ファイルに保存」できる）
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: filename });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 export function downloadCanvas(canvas, filename) {
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const a = el('a', { href: url, download: filename });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, 'image/png');
+  canvas.toBlob((blob) => { if (blob) downloadBlob(blob, filename); }, 'image/png');
 }
 
 function partsTable(plan) {

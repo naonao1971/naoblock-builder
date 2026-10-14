@@ -370,6 +370,7 @@ tfoot td { font-weight: bold; border-bottom: 0; }
 
 .print-action { margin-top: 16px; }
 .print-action button { width: 100%; }
+.print-buttons { display: grid; gap: 10px; }
 .print-root { display: none; }
 
 /* モードをえらぶ */

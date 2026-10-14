@@ -9,6 +9,7 @@
 //   shareText(r)：X のシェア文面（r = { pieces, elapsedMs, mode, guide }）
 //   url(href)：この題材を開く URL
 //   fileName：完成画像を保存するときの名前
+//   pdfName：組立図の PDF を保存するときの名前
 import { fetchSeed, fetchImageData, decodeNoun } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
 import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
@@ -100,6 +101,7 @@ export function nounSubject(n) {
     shareText: (r) => shareText(id, r.pieces, r.elapsedMs, r.mode, r.guide),
     url: (href) => appUrl(id, href),
     fileName: `naoblock-noun${id}.png`,
+    pdfName: `Noun_${id}_naoblock.pdf`,
   };
 }
 
@@ -118,6 +120,7 @@ export function pictureSubject(given) {
     shareText: (r) => shareTextFor(pic.label, '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide),
     url: (href) => pageUrl(href, 'pic', name),
     fileName: `naoblock-pic-${name}.png`,
+    pdfName: `${name}_naoblock.pdf`,
   };
 }
 
