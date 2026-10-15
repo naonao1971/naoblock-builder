@@ -1,4 +1,5 @@
 // 検証用：node tools/check.mjs 11（パーツ割りと組立順の検算）
+//         node tools/check.mjs --qr（nanoQR：URL → QR の元絵・パーツ割り。ネットなしで動く）
 //         node tools/check.mjs --subjects（題材：URL → 題材・保存の名前・シェアの文面だけ。ネットなしで動く）
 // オプション：
 //   --seed=body,accessory,head,glasses  サブグラフを使わずに seed を指定する
@@ -17,6 +18,7 @@ import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from '../src/subjects.j
 import { gridFromPixels } from '../src/picture.js';
 import { rankingKey } from '../src/ranking.js';
 import { rangeFor, parseStart } from '../src/nounlist.js';
+import { qrPicture, makeQr, QR_MAX_BYTES } from '../src/qr.js';
 
 const args = process.argv.slice(2);
 const opt = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
@@ -42,6 +44,18 @@ function checkSubjects() {
       url: 'https://naonao1971.github.io/naoblock-builder/?pic=chibi-sakuya', file: 'naoblock-pic-chibi-sakuya.png', pdf: 'chibi-sakuya_naoblock.pdf' },
     { search: '?pic=1', kind: 'picture', id: 'chibi-sakuya', label: 'チビ咲耶' },
     { search: '?sample=1', kind: 'picture', id: 'chibi-sakuya', label: 'チビ咲耶' },
+    { search: `?qr=${encodeURIComponent('https://naoblock.jp')}`, kind: 'qr', id: 'https://naoblock.jp', label: 'nanoQR',
+      save: 'naoblock:game:v1:qr:https://naoblock.jp:practice', rank: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack', rankGuide: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack:guide',
+      share: 'nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      shareTa: 'nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      url: 'https://naonao1971.github.io/naoblock-builder/?qr=https%3A%2F%2Fnaoblock.jp', file: 'naoblock-qr.png', pdf: 'nanoQR_naoblock.pdf' },
+    { search: `?qr=${encodeURIComponent('https://naoblock.jp')}&dark=red&accent=peach`, kind: 'qr', id: 'https://naoblock.jp', label: 'nanoQR',
+      save: 'naoblock:game:v1:qr:https://naoblock.jp:practice', rank: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack', rankGuide: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack:guide',
+      share: 'nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      shareTa: 'nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      url: 'https://naonao1971.github.io/naoblock-builder/?qr=https%3A%2F%2Fnaoblock.jp&dark=red&accent=peach', file: 'naoblock-qr.png', pdf: 'nanoQR_naoblock.pdf' },
+    { search: '?qr=ftp%3A%2F%2Fexample.com', none: true },
+    { search: `?qr=${encodeURIComponent(`https://example.com/${'a'.repeat(60)}`)}`, none: true },
     { search: '?pic=nothing', none: true },
     { search: '?pic=constructor', none: true },
     { search: '?noun=abc', none: true },
@@ -123,6 +137,57 @@ function checkSubjects() {
   return ok;
 }
 
+// nanoQR の検算：長さの違う URL 4 本（バージョン 1〜4）と、長すぎる URL 1 本
+function checkQr() {
+  const pd = JSON.parse(readFileSync(fileURLToPath(new URL('../data/parts.json', import.meta.url)), 'utf8'));
+  const hex = (id) => colorById(id).hex;
+  const cases = [
+    ['https://a.jp', 1, 21, 4, 31],
+    ['https://naoblock.jp', 2, 25, 4, 35],
+    ['https://naoblock.jp/very/long/path?x=1', 3, 29, 4, 39],
+    ['https://builder.naoblock.jp/?pic=chibi-sakuya&x=1234567', 4, 33, 2, 39],
+  ];
+  let ok = true;
+  const say = (good, text) => { console.log(`  ${good ? 'OK ' : 'NG '}${text}`); ok = ok && !!good; };
+  console.log('## nanoQR（URL → QR の元絵）');
+  for (const [url, v, n, q, side] of cases) {
+    const p = qrPicture(url);
+    console.log(`  ${url}（${new TextEncoder().encode(url).length} バイト）`);
+    say(p.version === v && p.size === n && p.quiet === q && p.side === side, `バージョン ${p.version}・QR ${p.size}×${p.size}・余白 ${p.quiet}・一辺 ${p.side}（表：${v}・${n}・${q}・${side}）`);
+    const g = p.grid;
+    const at = (x, y) => g[y][x];
+    let frame = true, quiet = true, nulls = 0, yellow = 0, ringYellow = 0;
+    const off = 1 + p.quiet;
+    const ring = new Set();
+    for (const [fx, fy] of [[0, 0], [p.size - 7, 0], [0, p.size - 7]]) for (let k = 1; k <= 5; k++) for (const [x, y] of [[fx + k, fy + 1], [fx + k, fy + 5], [fx + 1, fy + k], [fx + 5, fy + k]]) ring.add(`${off + x},${off + y}`);
+    for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) {
+      const c = at(x, y);
+      if (c == null) nulls++;
+      const edge = x === 0 || y === 0 || x === side - 1 || y === side - 1;
+      const inQr = x >= off && x < off + p.size && y >= off && y < off + p.size;
+      if (edge && c !== hex('black')) frame = false;
+      if (!edge && !inQr && c !== hex('white')) quiet = false;
+      if (c === hex('yellow')) { yellow++; if (ring.has(`${x},${y}`)) ringYellow++; }
+    }
+    say(frame, '外枠がすべてブラック');
+    say(quiet, '余白がすべてホワイト');
+    say(nulls === 0, `null のマスがない（${nulls}）`);
+    say(ringYellow === 48 && yellow === 48, `目印の輪 3 か所（16 マス × 3）がイエローで、ほかにイエローがない（イエロー ${yellow} マス）`);
+    const plan = makePlan(g, { partsData: pd });
+    const steps = buildSteps(plan.pieces, plan.layout);
+    const blocks = buildBlocks(plan.pieces, plan.layout);
+    say(plan.check.ok, `パーツ割り（全マスちょうど 1 回）：パーツ ${plan.pieces.length} 個・${plan.shopping.total.toLocaleString('ja-JP')}円`);
+    say(verifyBlocks(plan.pieces, blocks, plan.layout).ok, `ゲームのブロック（${blocks.length} 個）`);
+    say(verifySteps(plan.pieces, steps, plan.layout).ok, `組立順（${steps.length} ステップ）`);
+  }
+  const long = `https://example.com/${'a'.repeat(QR_MAX_BYTES)}`;
+  let threw = false;
+  try { makeQr(long); } catch { threw = true; }
+  say(threw, `長すぎる URL（${new TextEncoder().encode(long).length} バイト）はエラー`);
+  return ok;
+}
+
+if (args.includes('--qr')) process.exit(checkQr() ? 0 : 1);
 if (args.includes('--subjects')) process.exit(checkSubjects() ? 0 : 1);
 
 if (id == null || !/^\d+$/.test(id)) {

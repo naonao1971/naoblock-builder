@@ -13,6 +13,7 @@
 import { fetchSeed, fetchImageData, nounPicture } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
 import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
+import { isQrUrl, qrByteLength, qrColors, qrPicture, QR_MAX_BYTES, QR_DEFAULT_COLORS } from './qr.js';
 
 // スタート画面のカテゴリー（この順に並べる）
 //   input：'noun'（番号を入れる）| 'cards'（カードから選ぶ）| 'url'（URL を入れる）
@@ -22,7 +23,7 @@ export const CATEGORIES = [
   { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
   { key: 'ninja', label: 'クリプト忍者', input: 'cards', ready: true },
   { key: 'cnp', label: 'CNP', input: 'cards', ready: true },
-  { key: 'qr', label: 'nanoQR', input: 'url', ready: false, note: 'URL を入れると、QR コードをブロックで組み立てられます' }, // 説明文は仮
+  { key: 'qr', label: 'nanoQR', input: 'url', ready: true, note: 'あなたのサイトへの入口を、ナノブロックで作ろう' },
 ];
 
 // 絵の一覧（URL に出る名前 → 画像・画面に出す名前・カテゴリー）。
@@ -127,8 +128,47 @@ export function pictureSubject(given) {
 
 // URL（location.search）から題材を作る。当てはまらなければ null（スタート画面）
 // ?pic=<名前>、?sample=<名前>（PR #16 の確認用 URL のため残す）、?noun=<番号>。古い名前（1）は今の名前に読み替える
+// nanoQR：入れた URL を QR コードにして元絵にする（src/qr.js）。
+// 保存・ランキングの名前に色は入れない（同じ URL なら同じ記録）。シェアの文面には入れた URL を出す
+export function qrSubject(url, colors = {}) {
+  const c = qrColors(colors);
+  return {
+    kind: 'qr',
+    id: url,
+    label: 'nanoQR',
+    scope: 'この QR',
+    colors: c,
+    load: async () => qrPicture(url, c),
+    originalNote: '元絵：QR コード（外枠と余白つき）',
+    shareText: (r) => `${shareTextFor('nanoQR', '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide)}\nこのQRの行き先：${url}`,
+    url: (href) => {
+      const u = new URL(pageUrl(href, 'qr', url));
+      if (c.dark !== QR_DEFAULT_COLORS.dark || c.accent !== QR_DEFAULT_COLORS.accent) {
+        u.searchParams.set('dark', c.dark);
+        u.searchParams.set('accent', c.accent);
+      }
+      return u.toString();
+    },
+    fileName: 'naoblock-qr.png',
+    pdfName: 'nanoQR_naoblock.pdf',
+  };
+}
+
+// ?qr= の URL がおかしいとき、スタート画面に出す言葉（問題なければ null）
+export function qrProblem(search) {
+  const url = new URLSearchParams(search).get('qr');
+  if (url == null) return null;
+  if (!isQrUrl(url)) return 'QR にできるのは http:// か https:// で始まる URL だけです。';
+  const over = qrByteLength(url) - QR_MAX_BYTES;
+  if (over > 0) return `URL が長すぎます。あと ${over} 文字短くしてください（短縮 URL も使えます）。`;
+  return null;
+}
+
 export function subjectFromUrl(search) {
   const params = new URLSearchParams(search);
+  if (params.get('qr') != null) {
+    return qrProblem(search) ? null : qrSubject(params.get('qr'), { dark: params.get('dark'), accent: params.get('accent') });
+  }
   const pic = params.get('pic') ?? params.get('sample');
   if (pic != null) return pictureSubject(pic);
   const n = params.get('noun');
