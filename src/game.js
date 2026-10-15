@@ -223,6 +223,16 @@ export class Game {
     this.spawn();
   }
 
+  // 持っているブロックを、本来の場所へそのまま重ねる（nanoQR のれんしゅうの「最後まで自動で組み立てる」）
+  snapToTarget() {
+    const b = this.block;
+    if (!b) return;
+    const shape = normalize(b.cells);
+    this.held.shape = shape;
+    this.held.x = Math.min(...b.cells.map((c) => c[0]));
+    this.held.y = Math.min(...b.cells.map((c) => c[1]));
+  }
+
   // 「はめる」：正解ならはまって次へ。違えば元の場所へ戻る（間違いは数えない）
   // 戻り値：{ ok, block: はまったブロック, stageCleared, done }
   place() {
