@@ -24,8 +24,9 @@ export function formatTimeShort(ms) {
   return sec < 60 ? `${sec}秒` : `${Math.floor(sec / 60)}分`;
 }
 
-// シェアの文面（name：絵の名前、tags：ハッシュタグ）
-export function shareTextFor(name, tags, pieces, elapsedMs, mode = 'practice', guide = false) {
+// シェアの文面（name：絵の名前、tags：ハッシュタグ）。auto：「最後まで自動で組み立てる」を使った（タイムは出さない）
+export function shareTextFor(name, tags, pieces, elapsedMs, mode = 'practice', guide = false, auto = false) {
+  if (auto) return `${name} をナオブロックで自動で組み立てた！ パーツ ${pieces}個 ${tags}`;
   if (mode === 'timeattack') return `${name} をナオブロックで組み立てた！ タイムアタック${guide ? '（ガイドあり）' : ''} ${formatTime(elapsedMs)} ${tags}`;
   return `${name} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} ${tags}`;
 }
@@ -186,8 +187,15 @@ const formatDate = (ms) => {
 
 // 結果：モード・合計タイム・ステージごとのタイム。タイムアタックはランキング（この端末の上位 5 件）も
 // stages は src/stages.js の buildStages の結果（ステージ名とブロック数に使う）
-export function renderResult(container, { mode, guide = false, scope = 'この Noun', totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
+// auto：「最後まで自動で組み立てる」を使った（タイムは出さない）
+export function renderResult(container, { mode, guide = false, auto = false, scope = 'この Noun', totalMs, stageTimes = [], stages, ranking = null, rank = -1 }) {
   const ta = mode === 'timeattack';
+  if (auto) {
+    container.replaceChildren(
+      el('h3', {}, `れんしゅう${guide ? '（ガイドあり）' : ''}の結果`),
+      el('p', { class: 'note' }, '自動で完成させたので、タイムは出しません。次は自分の手で組んでみてください。'));
+    return;
+  }
   const rows = stages.map((st, i) => {
     const t = stageTimes[i];
     const time = st.blocks.length === 0 ? '（ブロックなし）' : t == null ? '—' : formatTimeFine(t);
