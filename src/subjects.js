@@ -140,7 +140,7 @@ export function qrSubject(url, colors = {}) {
     colors: c,
     load: async () => qrPicture(url, c),
     originalNote: '元絵：QR コード（外枠と余白つき）',
-    shareText: (r) => `${shareTextFor('nanoQR', '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide)}\nこのQRの行き先：${url}`,
+    shareText: (r) => `${shareTextFor('nanoQR', '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide, r.auto)}\nこのQRの行き先：${url}`,
     url: (href) => {
       const u = new URL(pageUrl(href, 'qr', url));
       if (c.dark !== QR_DEFAULT_COLORS.dark || c.accent !== QR_DEFAULT_COLORS.accent) {
