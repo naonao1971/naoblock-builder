@@ -18,7 +18,7 @@ import { nounBrowser } from './nounlist.js';
 const PLATE_HEX = 'd9d6cf';
 
 const HELP_KEY = 'naoblock:help-seen-game';
-const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく）
+const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく。はじめての人は「あり」）
 const TAB_KEY = 'naoblock:tab'; // スタート画面で開いていたタブ（遊んで戻ったとき、同じタブを開く）
 const CLEAR_PAUSE_MS = 1300;
 // タイムアタック（仮の数字。遊んで調整する）
@@ -127,7 +127,7 @@ const anyModalOpen = () => ['help', 'resume', 'sample', 'mode', 'gameover', 'men
 // ---- モードをえらぶ（ガイドあり／なしのスイッチ付き。タイムアタックのボタンに、この端末のベストを出す） ----
 
 function loadGuide() {
-  try { return localStorage.getItem(GUIDE_KEY) === '1'; } catch { return false; }
+  try { return localStorage.getItem(GUIDE_KEY) !== '0'; } catch { return true; }
 }
 
 function chooseMode(subject) {
@@ -141,7 +141,7 @@ function chooseMode(subject) {
     };
     const setGuide = (v) => {
       guide = v;
-      try { localStorage.setItem(GUIDE_KEY, v ? '1' : '0'); } catch { /* 保存できなければ次回は「なし」 */ }
+      try { localStorage.setItem(GUIDE_KEY, v ? '1' : '0'); } catch { /* 保存できなければ次回は「あり」 */ }
       sync();
     };
     $('guide-on').onclick = () => setGuide(true);
