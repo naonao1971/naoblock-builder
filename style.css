@@ -257,6 +257,8 @@ h1 small { font-family: var(--font-display); font-size: 1.15rem; color: var(--mu
 .dpad .left { grid-column: 1; grid-row: 2; }
 .dpad .right { grid-column: 3; grid-row: 2; }
 .dpad .down { grid-column: 2; grid-row: 3; }
+/* タイムアタックのヒント：十字キーの真ん中。光っている間は押せない */
+.dpad .hint { grid-column: 2; grid-row: 2; font-size: 1.2rem; }
 .actions { grid-area: actions; display: flex; flex-direction: column; gap: 6px; }
 .rotates { display: flex; gap: 6px; }
 /* 回転と「はめる」は子どもの指でも押しやすい大きさに（1 個 64px 以上、はめるがいちばん大きい） */

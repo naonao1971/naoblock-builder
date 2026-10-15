@@ -447,7 +447,7 @@ async function start(subject) {
   };
 
   // 黄色い枠：れんしゅうはブロックが出た瞬間から出す。タイムアタックは 💡 を押したときだけ
-  const resetHint = () => { view.hint = !ta; };
+  const resetHint = () => { view.hint = !ta; $('hint').disabled = false; };
   resetHint();
 
   // 操作の共通の入口：止めている間や案内を出している間は受け付けない
@@ -704,15 +704,15 @@ async function start(subject) {
     if (!finished && !game.done) persist();
     location.href = './';
   };
-  // タイムアタック：ヒント（押すと正しい場所が光る。1 回 +3 秒。もう光っているときは数えない）
-  $('hint').onclick = () => {
-    closeMenu();
+  // タイムアタック：十字キーの真ん中の 💡 でヒント（押すと正しい場所が光る。1 回 +3 秒。もう光っているときは数えない）
+  $('hint').onclick = () => act(() => {
     if (!ta || view.hint) return;
     view.hint = true;
+    $('hint').disabled = true;
     clock.elapsed += TA_HINT_PENALTY_MS;
     toast('ヒント ＋3秒', 700);
     updateTimer();
-  };
+  });
   // 遊び方：閉じたら ⏸ メニューにもどる
   $('help-open').onclick = async () => {
     menuEl.hidden = true;
