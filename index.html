@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja" data-version="35">
+<html lang="ja" data-version="36">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -85,6 +85,7 @@
       <div class="dpad" role="group" aria-label="動かす">
         <button type="button" id="pad-up" class="pad up" data-dx="0" data-dy="-1" aria-label="上へ">▲</button>
         <button type="button" class="pad left" data-dx="-1" data-dy="0" aria-label="左へ">◀</button>
+        <button id="hint" type="button" class="pad hint" aria-label="ヒント（+3 秒）" title="ヒント（+3 秒）" hidden>💡</button>
         <button type="button" class="pad right" data-dx="1" data-dy="0" aria-label="右へ">▶</button>
         <button type="button" class="pad down" data-dx="0" data-dy="1" aria-label="下へ">▼</button>
       </div>
@@ -148,7 +149,7 @@
           <li>下まで落ちきるか、ステージの時間切れ（上の細いバー）で ♥ が 1 つ減ります。0 でゲームオーバー。続けられますが、ランキングには入りません</li>
           <li>ガイドありにすると、置くブロックの形が盤面に薄い色で出ます。タイムアタックのランキングは、ガイドあり・なしで別々です</li>
           <li>右上の小さな絵が完成図です。タップすると大きく見られます</li>
-          <li>右上の ⏸（PC は Esc）でゲームを止めて、つづける・やり直す・やめる・音・遊び方をえらべます。タイムアタックのヒント 💡 もここです</li>
+          <li>右上の ⏸（PC は Esc）でゲームを止めて、つづける・やり直す・やめる・音・遊び方をえらべます。タイムアタックのヒント 💡 は十字キーの真ん中です</li>
         </ul>
         <div class="buttons">
           <button id="help-close" type="button" class="primary">はじめる</button>
@@ -164,7 +165,6 @@
           <button id="menu-continue" type="button" class="primary">▶ つづける</button>
           <button id="menu-retry" type="button">↺ やり直す</button>
           <button id="menu-quit" type="button">⏹ やめる</button>
-          <button id="hint" type="button" hidden>💡 ヒント（+3 秒）</button>
           <button id="mute" type="button">🔊 音</button>
           <button id="help-open" type="button">？ 遊び方</button>
         </div>
