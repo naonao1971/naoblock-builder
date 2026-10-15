@@ -22,6 +22,7 @@ const HELP_KEY = 'naoblock:help-seen-game';
 const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく。はじめての人は「あり」）
 const TAB_KEY = 'naoblock:tab'; // スタート画面で開いていたタブ（遊んで戻ったとき、同じタブを開く）
 const CLEAR_PAUSE_MS = 1300;
+const AUTO_MS = 100; // 「最後まで自動で組み立てる」で 1 個置く間隔（時計の針と同じ 0.1 秒ごと）
 // タイムアタック（仮の数字。遊んで調整する）
 const TA_MS_PER_BLOCK = 10000; // 制限時間＝ステージのブロック数 × 10 秒
 const TA_HINT_PENALTY_MS = 3000; // ヒント 1 回で +3 秒
@@ -380,6 +381,10 @@ async function start(subject) {
   let continued = !!(ta && save && !save.done && (save.continued || overSaved));
   let locked = false;
   let fallMs = 0;
+  // nanoQR のれんしゅうだけ：⏸ メニューの「最後まで自動で組み立てる」
+  const canAuto = subject.kind === 'qr' && !ta;
+  let auto = false;
+  let autoMs = 0;
 
   const view = new GameView($('board-wrap'), $('board'), {
     layout: plan.layout,
@@ -451,9 +456,28 @@ async function start(subject) {
   const resetHint = () => { view.hint = !ta; $('hint').disabled = false; };
   resetHint();
 
-  // 操作の共通の入口：止めている間や案内を出している間は受け付けない
+  const stopAuto = () => {
+    auto = false;
+    $('auto-stop').hidden = true;
+  };
+  const startAuto = () => {
+    auto = true;
+    autoMs = AUTO_MS;
+    $('auto-stop').hidden = false;
+    clock.start();
+  };
+  // 自動：持っているブロックを本来の場所に重ねて、はめる
+  const autoStep = () => {
+    game.snapToTarget();
+    const res = game.place();
+    if (res.ok) afterPlaced(res.block, res);
+    if (res.done || !res.ok) stopAuto();
+  };
+
+  // 操作の共通の入口：止めている間や案内を出している間は受け付けない。自動で組み立てている間に触ったら、止めるだけ
   const act = (fn) => {
     if (locked || finished || game.done || anyModalOpen()) return;
+    if (auto) { stopAuto(); return; }
     sound.unlock();
     clock.start();
     fn();
@@ -598,6 +622,7 @@ async function start(subject) {
   };
 
   const restart = () => {
+    stopAuto();
     clearSave(subject, slot);
     lives = TA_LIVES;
     continued = false;
@@ -658,9 +683,11 @@ async function start(subject) {
     const noLives = ta && lives <= 1;
     $('menu-retry').disabled = noLives;
     $('menu-retry').textContent = noLives ? '↺ やり直す（♥ が足りません）' : '↺ やり直す';
+    $('menu-auto').hidden = !canAuto;
   };
   const openMenu = () => {
     if (locked || finished || game.done || $('view-play').hidden || anyModalOpen()) return;
+    stopAuto();
     clock.wanted = clock.since != null;
     clock.pause();
     clock.held = true;
@@ -680,6 +707,8 @@ async function start(subject) {
   $('menu-retry').onclick = () => showMenuPart(ta
     ? `このステージを最初からやり直しますか？（♥ が 1 つ減って、タイムはステージの最初にもどります）`
     : 'このステージを最初からやり直しますか？');
+  $('menu-auto').onclick = () => { closeMenu(); startAuto(); };
+  $('auto-stop').onclick = () => stopAuto();
   $('menu-confirm-no').onclick = () => showMenuPart(null);
   $('menu-confirm-yes').onclick = () => {
     closeMenu();
@@ -750,6 +779,12 @@ async function start(subject) {
     const dt = now - last;
     last = now;
     if (document.hidden || locked || finished || game.done || anyModalOpen() || $('view-play').hidden) return;
+    // 自動で組み立てる（ステージクリアの表示の間は locked なので待つ）
+    if (auto) {
+      autoMs += dt;
+      if (autoMs >= AUTO_MS) { autoMs = 0; autoStep(); }
+      return;
+    }
     // 落ちてくる型：一定の間隔で 1 マスずつ落とす（れんしゅうは最初の操作のあとから）
     if (game.falling && (ta || clock.since != null)) {
       fallMs += dt;
