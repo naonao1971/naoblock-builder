@@ -445,5 +445,5 @@ button:not(:disabled):active, .button:active,
 .controller button.pressed { filter: brightness(0.85); transform: translateY(2px); }
 
 /* 無料の一行と、公式 LINE の入口 */
-.free { color: var(--muted); font-size: 0.85rem; margin: -4px 0 12px; }
+.free { color: var(--muted); font-size: 0.85rem; margin: -4px 0 12px; word-break: auto-phrase; }
 .line-follow { text-align: center; margin: 12px 0 0; font-weight: bold; }
