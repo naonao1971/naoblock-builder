@@ -11,8 +11,9 @@ import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
-import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from './subjects.js';
+import { subjectFromUrl, qrProblem, saveKey, PICTURES, CATEGORIES } from './subjects.js';
 import { nounBrowser } from './nounlist.js';
+import { qrPanel } from './qrpanel.js';
 
 // プレートの色は未確認（手順書 7）。決まるまでの仮の色
 const PLATE_HEX = 'd9d6cf';
@@ -801,7 +802,7 @@ function pictureCard(name, pic) {
   return a;
 }
 
-function categoryPanel(cat, form) {
+function categoryPanel(cat, form, qrOpts) {
   const soon = (note) => {
     const p = document.createElement('p');
     p.className = 'soon';
@@ -831,6 +832,8 @@ function categoryPanel(cat, form) {
     } else {
       sec.append(...soon(cat.note));
     }
+  } else if (cat.input === 'url') {
+    sec.append(qrPanel(cat, qrOpts));
   } else {
     sec.append(...soon(cat.note));
   }
@@ -846,7 +849,8 @@ function firstTab() {
   return keys.includes(saved) ? saved : keys[0];
 }
 
-function renderCategories() {
+// qr：?qr= がおかしかったとき { message, value, colors }（nanoQR タブを開いて言葉を出す）
+function renderCategories(qr = null) {
   const box = $('categories');
   const form = $('noun-form');
   const tabs = document.createElement('div');
@@ -884,7 +888,7 @@ function renderCategories() {
       e.preventDefault();
       select(CATEGORIES[(i + step + CATEGORIES.length) % CATEGORIES.length].key, { focus: true });
     };
-    const panel = categoryPanel(cat, form);
+    const panel = categoryPanel(cat, form, qr || {});
     panel.id = `panel-${cat.key}`;
     panel.setAttribute('role', 'tabpanel');
     panel.setAttribute('aria-labelledby', b.id);
@@ -893,7 +897,7 @@ function renderCategories() {
   });
   tabs.append(...buttons);
   box.replaceChildren(tabs, ...panels);
-  select(firstTab(), { remember: false });
+  select(qr ? 'qr' : firstTab(), { remember: false });
 }
 
 function init() {
@@ -913,7 +917,9 @@ function init() {
   if (subject) {
     start(subject);
   } else {
-    renderCategories();
+    const params = new URLSearchParams(location.search);
+    const problem = qrProblem(location.search);
+    renderCategories(problem ? { message: problem, value: params.get('qr'), colors: { dark: params.get('dark'), accent: params.get('accent') } } : null);
     show('start');
   }
 }
