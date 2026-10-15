@@ -130,7 +130,7 @@ h1 small { font-family: var(--font-display); font-size: 1.15rem; color: var(--mu
 .hud-main { display: flex; align-items: center; gap: 10px; }
 .hud-info { flex: 1; min-width: 0; }
 .hud-row { display: flex; gap: 8px; align-items: baseline; font-size: 0.85rem; white-space: nowrap; min-width: 0; }
-.mode-badge { font-size: 0.7rem; padding: 0 6px; border-radius: 999px; background: var(--line); }
+.mode-badge { flex: none; white-space: nowrap; font-size: 0.7rem; padding: 0 6px; border-radius: 999px; background: var(--line); }
 .mode-badge.ta { background: #c62828; color: #fff; }
 .mode-badge:empty { display: none; }
 .progress-row { display: flex; align-items: center; gap: 8px; }

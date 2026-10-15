@@ -53,7 +53,6 @@
           <div class="hud-row">
             <span class="brand">naoblock</span>
             <span id="play-noun"></span>
-            <span id="mode-badge" class="mode-badge"></span>
           </div>
           <div class="step-row">
             <span id="step-label" class="step-label"></span>
@@ -67,9 +66,10 @@
         <button id="pause" type="button" class="pause-btn" aria-label="一時停止（メニュー）" title="一時停止（Esc）">⏸</button>
       </div>
       <div class="progress-row">
+        <!-- モードのバッジと ♥ は、1 段目だと名前に押されて「つぎ」の下に隠れるので、この段に置く -->
+        <span id="mode-badge" class="mode-badge"></span>
         <div class="progress"><div id="progress-bar"></div></div>
         <span id="progress-text" class="muted"></span>
-        <!-- ♥ は 1 段目だと名前とバッジに押されて「つぎ」の下に隠れるので、進み具合の右に置く -->
         <span id="lives" class="lives" hidden></span>
       </div>
       <div id="limit" class="limit" hidden aria-hidden="true"><div id="limit-bar"></div></div>
