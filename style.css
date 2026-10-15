@@ -421,3 +421,29 @@ tfoot td { font-weight: bold; border-bottom: 0; }
 .ranking .rank-no { width: 2.5em; }
 .ranking .rank-time { flex: 1; }
 .ranking .rank-date { color: var(--muted); font-size: 0.85rem; }
+
+/* 金継ぎ（2026-10-15）：ゲーム画面の大きさ・角の丸みをそろえる。数字は診断書のとおり */
+/* ボタンの文字の大きさを3段に：小さい説明 15.2px／ボタンの名前と記号 20.8px／回転の記号 30.4px（据え置き） */
+.mode-btn span { font-size: 0.95rem; word-break: auto-phrase; } /* 「ゲームオーバー」を行の途中で切らない */
+.mode-btn strong { font-size: 1.3rem; }
+.dpad .pad { font-size: 1.3rem; }
+.actions .place { font-size: 1.3rem; border-radius: 14px; }
+/* 小さすぎる文字を 12px に（注意書き・版の番号・「つぎ」の見出し） */
+.next-title { font-size: 0.75rem; }
+.controller .legal { font-size: 0.75rem; }
+@media (max-height: 500px) and (orientation: landscape) {
+  .controller .legal { font-size: 0.75rem; }
+}
+/* 角の丸みを3種に：細いもの 4px／小窓・枠 8px／押すボタン 14px */
+.progress { border-radius: 4px; }
+.mini { border-radius: 8px; }
+.segmented { border-radius: 8px; }
+.pause-btn { border-radius: 14px; }
+
+/* 押した手ごたえ：どのボタンも押した瞬間に少し沈む（コントローラーは JS の .pressed で同じ動き） */
+button:not(:disabled):active, .button:active,
+.controller button.pressed { filter: brightness(0.85); transform: translateY(2px); }
+
+/* 無料の一行と、公式 LINE の入口 */
+.free { color: var(--muted); font-size: 0.85rem; margin: -4px 0 12px; }
+.line-follow { text-align: center; margin: 12px 0 0; font-weight: bold; }
