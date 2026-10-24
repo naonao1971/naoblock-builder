@@ -237,9 +237,11 @@ function showFinish(subject, result, { plan, partsData, steps, stages, onAgain }
   $('finish-title').textContent = `${label} 完成！`;
   const rankText = ta && result.continued ? '（ゲームオーバーから続けたので、ランキングには入りません）'
     : ta && result.rank === 0 ? '（ベスト更新！）' : ta && result.rank > 0 ? `（この端末で ${result.rank + 1} 位）` : '';
-  $('finish-stats').textContent = `${modeLabel(result.mode, result.guide)}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
+  $('finish-stats').textContent = result.auto
+    ? `${modeLabel(result.mode, result.guide)}・自動で完成・使ったパーツ ${result.pieces}個`
+    : `${modeLabel(result.mode, result.guide)}・合計 ${formatTime(result.elapsedMs)}${rankText}・使ったパーツ ${result.pieces}個`;
   renderResult($('finish-result'), {
-    mode: result.mode, guide: result.guide, scope: subject.scope, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
+    mode: result.mode, guide: result.guide, auto: !!result.auto, scope: subject.scope, totalMs: result.elapsedMs, stageTimes: result.stageTimes, stages,
     ranking: ta ? (result.ranking || loadRanking(subject, result.guide)) : null, rank: result.rank ?? -1,
   });
   const canvas = $('finish-canvas');
@@ -385,6 +387,8 @@ async function start(subject) {
   const canAuto = subject.kind === 'qr' && !ta;
   let auto = false;
   let autoMs = 0;
+  // 一度でも自動を使ったら、完成画面とシェアは「自動で完成」（途中保存にも残す。やり直したら消す）
+  let autoUsed = !!(canAuto && save?.auto);
 
   const view = new GameView($('board-wrap'), $('board'), {
     layout: plan.layout,
@@ -406,6 +410,7 @@ async function start(subject) {
       v: 1, sig, mode, ...snap, block: ta && !finished ? 0 : snap.block, done: finished,
       elapsedMs: Math.round(ta && !finished ? clock.stageStart : clock.now), stageStartMs: Math.round(clock.stageStart),
       ...(ta ? { lives, continued } : {}),
+      ...(autoUsed ? { auto: true } : {}),
     });
   };
 
@@ -462,6 +467,7 @@ async function start(subject) {
   };
   const startAuto = () => {
     auto = true;
+    autoUsed = true;
     autoMs = AUTO_MS;
     $('auto-stop').hidden = false;
     clock.start();
@@ -502,7 +508,7 @@ async function start(subject) {
     setTimeout(() => sound.complete(), 400);
     // 完成した盤面を少し見せてから完成画面へ
     setTimeout(() => showFinish(subject, {
-      pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank, continued,
+      pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank, continued, auto: autoUsed,
     }, { plan, partsData, steps, stages, onAgain: restart }), 1200);
   };
 
@@ -623,6 +629,7 @@ async function start(subject) {
 
   const restart = () => {
     stopAuto();
+    autoUsed = false;
     clearSave(subject, slot);
     lives = TA_LIVES;
     continued = false;
@@ -805,7 +812,7 @@ async function start(subject) {
 
   updateHud();
   if (finished) {
-    showFinish(subject, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, guide, stageTimes: save?.stageTimes || [] },
+    showFinish(subject, { pieces: plan.pieces.length, elapsedMs: clock.elapsed, mode, guide, stageTimes: save?.stageTimes || [], auto: autoUsed },
       { plan, partsData, steps, stages, onAgain: restart });
   } else {
     if (!helpSeen()) await showHelp();
