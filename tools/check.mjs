@@ -14,7 +14,7 @@ import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
-import { subjectFromUrl, saveKey, PICTURES, CATEGORIES } from '../src/subjects.js';
+import { subjectFromUrl, saveKey, PICTURES, CATEGORIES, todayJst, shownCategories, isPictureShown } from '../src/subjects.js';
 import { gridFromPixels } from '../src/picture.js';
 import { rankingKey } from '../src/ranking.js';
 import { rangeFor, parseStart } from '../src/nounlist.js';
@@ -97,11 +97,25 @@ function checkSubjects() {
   console.log(`  ${clearOk ? 'OK ' : 'NG '}背景が透明な絵で、白（f4f4f4）と黒が残り、透明だけが空く：${clearGrid}`);
   ok = ok && clearOk;
   const order = CATEGORIES.map((c) => c.label).join('・');
-  const orderOk = order === 'Nouns・クリプト忍者・CNP・nanoQR';
+  const orderOk = order === '🎃ハロウィン・Nouns・クリプト忍者・CNP・nanoQR';
   console.log(`  ${orderOk ? 'OK ' : 'NG '}スタート画面のカテゴリーの順：${order}`);
   const chibiOk = PICTURES['chibi-sakuya']?.category === 'ninja';
   console.log(`  ${chibiOk ? 'OK ' : 'NG '}チビ咲耶はクリプト忍者（ninja）`);
   ok = ok && orderOk && chibiOk;
+  // 期間限定：ハロウィンのタブは 10/31（日本時間）まで。絵は from の日から
+  const shown = (d) => shownCategories(d).map((c) => c.key).includes('halloween');
+  const obake = PICTURES['halloween-obake'];
+  const limitCases = [
+    ['10/31 23:59（日本時間）は今日が 10/31', todayJst(new Date('2026-10-31T14:59:00Z')) === '2026-10-31'],
+    ['11/1 0:00（日本時間）は今日が 11/1', todayJst(new Date('2026-10-31T15:00:00Z')) === '2026-11-01'],
+    ['10/31 はハロウィンのタブが出る', shown('2026-10-31')],
+    ['11/1 はハロウィンのタブが出ない', !shown('2026-11-01')],
+    ['11/1 でもほかのタブは 4 つとも出る', shownCategories('2026-11-01').length === 4],
+    ['おばけとかぼちゃは 10/24 には出ない', !isPictureShown(obake, '2026-10-24')],
+    ['おばけとかぼちゃは 10/25 から出る', isPictureShown(obake, '2026-10-25')],
+    ['期間が終わっても ?pic=halloween-obake で遊べる', subjectFromUrl('?pic=halloween-obake')?.label === 'おばけとかぼちゃ'],
+  ];
+  for (const [text, good] of limitCases) { console.log(`  ${good ? 'OK ' : 'NG '}${text}`); ok = ok && good; }
   // Nouns タブの一覧：見る範囲（最新 2046 として）と、開始番号の入力
   const R = (st) => { const r = rangeFor(st, 2046); return `${r.start}〜${r.end}${r.hasPrev ? '' : '（◀ なし）'}${r.hasNext ? '' : '（▶ なし）'}`; };
   const rangeCases = [[2046, '2017〜2046（▶ なし）'], [100, '100〜129'], [130, '130〜159'], [0, '0〜29（◀ なし）'], [2030, '2017〜2046（▶ なし）'], [5000, '2017〜2046（▶ なし）']];

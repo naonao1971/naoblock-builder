@@ -11,7 +11,7 @@ import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
-import { subjectFromUrl, qrProblem, saveKey, PICTURES, CATEGORIES } from './subjects.js';
+import { subjectFromUrl, qrProblem, saveKey, PICTURES, shownCategories, isPictureShown } from './subjects.js';
 import { nounBrowser } from './nounlist.js';
 import { qrPanel } from './qrpanel.js';
 
@@ -858,7 +858,7 @@ function categoryPanel(cat, form, qrOpts) {
     sec.append(form, browser.element);
     sec.onshow = browser.show;
   } else if (cat.input === 'cards') {
-    const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key).map(([name, pic]) => pictureCard(name, pic));
+    const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key && isPictureShown(pic)).map(([name, pic]) => pictureCard(name, pic));
     if (cards.length) {
       const list = document.createElement('div');
       list.className = 'picture-list';
@@ -875,8 +875,8 @@ function categoryPanel(cat, form, qrOpts) {
   return sec;
 }
 
-function firstTab() {
-  const keys = CATEGORIES.map((c) => c.key);
+function firstTab(categories) {
+  const keys = categories.map((c) => c.key);
   const fromHash = decodeURIComponent(location.hash.slice(1));
   if (keys.includes(fromHash)) return fromHash;
   let saved = null;
@@ -886,6 +886,7 @@ function firstTab() {
 
 // qr：?qr= がおかしかったとき { message, value, colors }（nanoQR タブを開いて言葉を出す）
 function renderCategories(qr = null) {
+  const categories = shownCategories();
   const box = $('categories');
   const form = $('noun-form');
   const tabs = document.createElement('div');
@@ -895,7 +896,7 @@ function renderCategories(qr = null) {
   const buttons = [];
   const panels = [];
   const select = (key, { focus = false, remember = true } = {}) => {
-    CATEGORIES.forEach((cat, i) => {
+    categories.forEach((cat, i) => {
       const on = cat.key === key;
       buttons[i].setAttribute('aria-selected', String(on));
       buttons[i].tabIndex = on ? 0 : -1;
@@ -907,7 +908,7 @@ function renderCategories(qr = null) {
     try { sessionStorage.setItem(TAB_KEY, key); } catch { /* 覚えられなくても切り替えはできる */ }
     history.replaceState(null, '', `${location.pathname}${location.search}#${key}`);
   };
-  CATEGORIES.forEach((cat, i) => {
+  categories.forEach((cat, i) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'category-tab';
@@ -921,7 +922,7 @@ function renderCategories(qr = null) {
       const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
       if (!step) return;
       e.preventDefault();
-      select(CATEGORIES[(i + step + CATEGORIES.length) % CATEGORIES.length].key, { focus: true });
+      select(categories[(i + step + categories.length) % categories.length].key, { focus: true });
     };
     const panel = categoryPanel(cat, form, qr || {});
     panel.id = `panel-${cat.key}`;
@@ -932,7 +933,7 @@ function renderCategories(qr = null) {
   });
   tabs.append(...buttons);
   box.replaceChildren(tabs, ...panels);
-  select(qr ? 'qr' : firstTab(), { remember: false });
+  select(qr ? 'qr' : firstTab(categories), { remember: false });
 }
 
 function init() {
