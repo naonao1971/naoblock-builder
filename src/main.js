@@ -7,7 +7,7 @@ import { buildStages } from './stages.js';
 import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
-import { confetti, centerOf, showCombo } from './fx.js';
+import { confetti, centerOf, showCombo, flyHeart } from './fx.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
@@ -410,7 +410,7 @@ async function start(subject) {
     writeSave(subject, slot, {
       v: 1, sig, mode, ...snap, block: ta && !finished ? 0 : snap.block, done: finished,
       elapsedMs: Math.round(ta && !finished ? clock.stageStart : clock.now), stageStartMs: Math.round(clock.stageStart),
-      ...(ta ? { lives, continued } : {}),
+      ...(ta ? { lives, continued, heartBonus } : {}),
       ...(autoUsed ? { auto: true } : {}),
     });
   };
@@ -492,6 +492,35 @@ async function start(subject) {
 
   const moved = (from) => view.movedFrom(from.x, from.y);
 
+  // タイムアタック：飛んでくる ♥。前半に 1 回・後半に 1 回、ランダムな数だけはめたところで出す
+  // 時間内にタップすると ♥ が 1 つ戻る。♥ がいっぱいのときは何も起きない（取った数だけ数えておく。将来の得点用）
+  let heartAt = [];
+  let heartNext = 0;
+  let heartBonus = ta && save && !save.done ? save.heartBonus || 0 : 0;
+  let stopHeart = null;
+  const setupHearts = () => {
+    stopHeart?.();
+    stopHeart = null;
+    if (!ta) return;
+    heartAt = [0.15 + Math.random() * 0.3, 0.55 + Math.random() * 0.35].map((r) => Math.max(1, Math.round(r * game.totalBlocks)));
+    // 途中から続けたときは、もう過ぎた分は出さない
+    heartNext = heartAt.filter((n) => n <= game.placedCount).length;
+  };
+  setupHearts();
+  const maybeHeart = () => {
+    if (heartNext >= heartAt.length || game.placedCount < heartAt[heartNext] || auto || finished) return;
+    heartNext++;
+    stopHeart = flyHeart($('board-wrap'), (x, y) => {
+      stopHeart = null;
+      if (finished || lives === 0) return;
+      sound.heart();
+      confetti(x, y, 30, 0.8);
+      if (lives < TA_LIVES) { lives++; updateLives(); toast('♥ 復活！', 900); }
+      else { heartBonus++; toast('♥ いっぱい！', 900); }
+      persist();
+    });
+  };
+
   // コンボ：続けてはめた回数。ミス（違う場所・下まで落ちきる・時間切れ）で 0 にもどす
   let combo = 0;
   const breakCombo = () => { combo = 0; };
@@ -546,16 +575,18 @@ async function start(subject) {
       clock.stageStart = clock.now;
       setTimeout(() => sound.stepDone(), 150);
       if (!res.done && !auto) confetti(...centerOf($('board')), 36, 0.8);
-      if (res.done) { locked = true; view.locked = true; finish(); return; }
+      if (res.done) { locked = true; view.locked = true; stopHeart?.(); finish(); return; }
       toast(`ステージ ${st + 1} クリア！ ${formatStageTime(time)}`, CLEAR_PAUSE_MS);
       if (ta) clock.pause(); // タイムアタック：クリアの表示の間は時間を止める
       persist();
       updateHud();
       lockFor(CLEAR_PAUSE_MS, () => { if (ta) clock.start(); });
+      maybeHeart();
       return;
     }
     persist();
     updateHud();
+    maybeHeart();
   };
 
   // 落ちてくる型：正解の位置と向きに重なった瞬間に、自動ではまる
@@ -601,6 +632,7 @@ async function start(subject) {
 
   // タイムアタック：♥ が 0 になった
   const gameOver = () => {
+    stopHeart?.();
     clock.pause();
     locked = true;
     view.locked = true;
@@ -663,6 +695,8 @@ async function start(subject) {
     continued = false;
     game = new Game({ stages: playStages, layout: plan.layout });
     view.game = game;
+    heartBonus = 0;
+    setupHearts();
     finished = false;
     locked = false;
     view.locked = false;

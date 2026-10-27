@@ -62,3 +62,42 @@ export function showCombo(el, n) {
   void el.offsetWidth;
   el.classList.add('pop');
 }
+
+// 飛んでくる ♥：画面を横切る ♥ を、時間内にタップしたら onCatch。取りのがしたら消えておしまい
+// area は飛ぶ範囲の要素（盤面）。戻り値は、途中で消すための関数
+export function flyHeart(area, onCatch, ms = 3200) {
+  const r = area.getBoundingClientRect();
+  const fromLeft = Math.random() < 0.5;
+  const size = 56;
+  const x0 = fromLeft ? r.left - size : r.right;
+  const x1 = fromLeft ? r.right : r.left - size;
+  const y0 = r.top + r.height * (0.25 + Math.random() * 0.4);
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'fly-heart';
+  el.textContent = '❤️';
+  el.setAttribute('aria-label', '♥ をタップして取る');
+  document.body.appendChild(el);
+  const t0 = performance.now();
+  let done = false;
+  const end = () => { done = true; el.remove(); };
+  const step = (now) => {
+    if (done) return;
+    const p = (now - t0) / ms;
+    if (p >= 1) { end(); return; }
+    const x = x0 + (x1 - x0) * p, y = y0 + Math.sin(p * Math.PI * 4) * 24;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  // 盤面のタップとして扱われないよう、ここで止める
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (done) return;
+    const b = el.getBoundingClientRect();
+    end();
+    onCatch(b.left + b.width / 2, b.top + b.height / 2);
+  });
+  return end;
+}

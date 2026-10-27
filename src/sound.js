@@ -105,3 +105,12 @@ export function combo(n) {
   const f = 520 * Math.pow(2, Math.min(n - 1, 12) / 12);
   tone(ac, ac.currentTime, { freq: f, duration: 0.12, gain: 0.1, type: 'triangle' });
 }
+
+// 飛んでくる ♥ を取ったとき
+export function heart() {
+  if (muted) return;
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  [880, 1175, 1568].forEach((f, i) => tone(ac, t + i * 0.07, { freq: f, duration: 0.2, gain: 0.12, type: 'triangle' }));
+}
