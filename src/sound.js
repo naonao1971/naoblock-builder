@@ -96,3 +96,12 @@ export function complete() {
   const t = ac.currentTime;
   [523, 659, 784, 1047].forEach((f, i) => tone(ac, t + i * 0.1, { freq: f, duration: 0.35, gain: 0.12 }));
 }
+
+// コンボが続くと、カチッに重ねて鳴らす音。回数が増えるほど高くなる（3D版と同じ上がり方）
+export function combo(n) {
+  if (muted) return;
+  const ac = audio();
+  if (!ac) return;
+  const f = 520 * Math.pow(2, Math.min(n - 1, 12) / 12);
+  tone(ac, ac.currentTime, { freq: f, duration: 0.12, gain: 0.1, type: 'triangle' });
+}

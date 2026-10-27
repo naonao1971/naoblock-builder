@@ -7,6 +7,7 @@ import { buildStages } from './stages.js';
 import { Game } from './game.js';
 import { GameView, drawBlockPreview } from './gameview.js';
 import * as sound from './sound.js';
+import { confetti, centerOf, showCombo } from './fx.js';
 import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
@@ -491,6 +492,18 @@ async function start(subject) {
 
   const moved = (from) => view.movedFrom(from.x, from.y);
 
+  // コンボ：続けてはめた回数。ミス（違う場所・下まで落ちきる・時間切れ）で 0 にもどす
+  let combo = 0;
+  const breakCombo = () => { combo = 0; };
+  // はめたブロックの真ん中の画面座標
+  const blockCenter = (block) => {
+    const r = $('board').getBoundingClientRect();
+    const cell = r.width / plan.layout.width;
+    const n = block.cells.length;
+    const cx = block.cells.reduce((a, c) => a + c[0], 0) / n, cy = block.cells.reduce((a, c) => a + c[1], 0) / n;
+    return [r.left + (cx + 0.5) * cell, r.top + (cy + 0.5) * cell];
+  };
+
   const lockFor = (ms, then) => {
     locked = true;
     view.locked = true;
@@ -506,6 +519,9 @@ async function start(subject) {
     persist();
     updateHud();
     setTimeout(() => sound.complete(), 400);
+    const [bx, by] = centerOf($('board'));
+    confetti(bx, by, 90, 1.3);
+    setTimeout(() => { confetti(innerWidth * 0.2, innerHeight * 0.4, 50, 1.1); confetti(innerWidth * 0.8, innerHeight * 0.4, 50, 1.1); }, 400);
     // 完成した盤面を少し見せてから完成画面へ
     setTimeout(() => showFinish(subject, {
       pieces: plan.pieces.length, elapsedMs: total, mode, guide, stageTimes: game.stageTimes.slice(), ranking: ranked.list, rank: ranked.rank, continued, auto: autoUsed,
@@ -514,6 +530,13 @@ async function start(subject) {
 
   const afterPlaced = (block, res) => {
     view.dropBlock(block, () => sound.click());
+    // 自動で組み立てている間は、紙吹雪もコンボも出さない
+    if (!auto) {
+      combo++;
+      if (combo >= 3) sound.combo(combo);
+      confetti(...blockCenter(block), 10 + Math.min(combo, 10) * 2, 0.6);
+      showCombo($('combo'), combo);
+    }
     resetHint();
     fallMs = 0;
     if (res.stageCleared) {
@@ -522,6 +545,7 @@ async function start(subject) {
       game.stageTimes[st] = Math.round(time);
       clock.stageStart = clock.now;
       setTimeout(() => sound.stepDone(), 150);
+      if (!res.done && !auto) confetti(...centerOf($('board')), 36, 0.8);
       if (res.done) { locked = true; view.locked = true; finish(); return; }
       toast(`ステージ ${st + 1} クリア！ ${formatStageTime(time)}`, CLEAR_PAUSE_MS);
       if (ta) clock.pause(); // タイムアタック：クリアの表示の間は時間を止める
@@ -546,7 +570,7 @@ async function start(subject) {
     const from = { ...game.held };
     const res = game.place();
     if (res.ok) afterPlaced(res.block, res);
-    else { view.shake(); moved(from); sound.nope(); }
+    else { view.shake(); moved(from); sound.nope(); breakCombo(); }
   };
 
   const tap = (cx, cy) => {
@@ -564,6 +588,7 @@ async function start(subject) {
 
   // 今のステージを最初からやり直す（時間切れ・ゲームオーバーから続ける）。やり直した分の時間は合計に入れない
   const retryStage = () => {
+    breakCombo();
     game.restartStage();
     clock.elapsed = clock.stageStart;
     clock.since = null;
@@ -609,6 +634,7 @@ async function start(subject) {
     const from = { ...game.held };
     const r = game.fall();
     if (r === 'reset') {
+      breakCombo();
       view.shake();
       sound.nope();
       if (ta && miss()) return;
@@ -620,6 +646,7 @@ async function start(subject) {
 
   // タイムアタック：時間切れ → ミス 1 回。♥ が残っていれば、そのステージを最初からやり直し
   const timeUp = () => {
+    breakCombo();
     if (miss()) return;
     clock.pause();
     sound.nope();
@@ -629,6 +656,7 @@ async function start(subject) {
 
   const restart = () => {
     stopAuto();
+    breakCombo();
     autoUsed = false;
     clearSave(subject, slot);
     lives = TA_LIVES;
