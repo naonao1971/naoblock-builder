@@ -5,7 +5,7 @@ import { colorById, hexToRgb } from './palette.js';
 import { drawFinishedBoard, outlinePath } from './board.js';
 import { pieceCells, SHAPE_ORDER } from './tiling.js';
 import { plateName } from './steps.js';
-import { buildPdf, dataUrlBytes } from './pdf.js';
+import { buildPdf, dataUrlBytes } from './kit.js';
 
 // A4 縦・150dpi。余白 12mm はページの絵の中に描き込む
 export const PAGE_W = 1240;
