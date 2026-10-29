@@ -25,6 +25,10 @@ body {
 
 [hidden] { display: none !important; }
 
+/* ボタンを長押し・連打しても iPhone で拡大・文字選択・長押しメニューが出ないように（2本指の拡大は残す） */
+html { touch-action: manipulation; }
+button, .button, img, canvas { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
 .muted { color: var(--muted); }
 
 button, .button {
