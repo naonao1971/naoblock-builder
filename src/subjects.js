@@ -25,6 +25,7 @@ export const CATEGORIES = [
   { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
   { key: 'ninja', label: 'クリプト忍者', input: 'cards', ready: true },
   { key: 'cnp', label: 'CNP', input: 'cards', ready: true },
+  { key: 'kitan', label: '月蝕綺譚', input: 'cards', ready: true },
   { key: 'qr', label: 'nanoQR', input: 'url', ready: true, note: 'あなたのサイトへの入口を、ナノブロックで作ろう' },
 ];
 
@@ -87,6 +88,8 @@ export const PICTURES = {
   'cnp-setsuna': { file: 'data/samples/cnp-setsuna.png', label: 'セツナ', category: 'cnp' },
   'cnp-ema': { file: 'data/samples/cnp-ema.png', label: 'エマ', category: 'cnp' },
   'cnp-taruto': { file: 'data/samples/cnp-taruto.png', label: 'タルト', category: 'cnp' },
+  // 月蝕綺譚
+  'kitan-izuna': { file: 'data/samples/kitan-izuna.png', label: 'イズナ', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
