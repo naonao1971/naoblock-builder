@@ -90,6 +90,9 @@ export const PICTURES = {
   'cnp-taruto': { file: 'data/samples/cnp-taruto.png', label: 'タルト', category: 'cnp' },
   // 月蝕綺譚
   'kitan-izuna': { file: 'data/samples/kitan-izuna.png', label: 'イズナ', category: 'kitan' },
+  'kitan-sakuya': { file: 'data/samples/kitan-sakuya.png', label: '咲耶', category: 'kitan' },
+  'kitan-nemu': { file: 'data/samples/kitan-nemu.png', label: 'ネム', category: 'kitan' },
+  'kitan-xiaolan': { file: 'data/samples/kitan-xiaolan.png', label: 'シャオラン', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
