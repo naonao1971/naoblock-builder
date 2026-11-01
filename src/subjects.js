@@ -99,7 +99,7 @@ export const PICTURES = {
   'chibi-izuna': { file: 'data/samples/chibi-izuna.png', card: 'data/samples/card-chibi-izuna.png', label: 'チビイズナ', category: 'kitan' },
   // チビネム：同じ作り方（v55。~/dev/nano2d_kitan/nemu/fix_chibi_nemu_grid.py）。髪は紺に落ちるので紫に、リボンはピンクに
   'chibi-nemu': { file: 'data/samples/chibi-nemu.png', card: 'data/samples/card-chibi-nemu.png', label: 'チビネム', category: 'kitan' },
-  // チビシャオラン：同じ作り方だが、変換のままだと顔と体がつぶれるので左右対称に描き直した（v56。~/dev/nano2d_kitan/xiaolan/fix_chibi_xiaolan_grid.py）
+  // チビシャオラン：色をブロックに寄せてから縮め、頭（お団子・前髪）は元絵の形、顔と体は手で整えた（v57。~/dev/nano2d_kitan/xiaolan/fix_chibi_xiaolan_v2.py）
   'chibi-xiaolan': { file: 'data/samples/chibi-xiaolan.png', card: 'data/samples/card-chibi-xiaolan.png', label: 'チビシャオラン', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
