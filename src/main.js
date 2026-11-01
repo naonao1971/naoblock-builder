@@ -895,7 +895,7 @@ function pictureCard(name, pic) {
   a.className = 'picture-card';
   a.href = `?pic=${encodeURIComponent(name)}`;
   const img = document.createElement('img');
-  img.src = pic.file;
+  img.src = pic.card ?? pic.file; // card：カードだけに出す細かい絵（ゲームは file の絵で遊ぶ）
   img.alt = '';
   a.append(img, pic.label);
   return a;
