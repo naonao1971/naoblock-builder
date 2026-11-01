@@ -128,7 +128,7 @@ function coverPage(doc, { label, plan, plateHex, url }) {
   font(ctx, 26);
   const factLines = facts.map(([, v]) => wrap(ctx, v, tdW));
   const factsH = factLines.reduce((n, ls) => n + ls.length * line + 10, 0);
-  const legalText = 'Nouns は CC0 です。nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。';
+  const legalText = 'nanoblock（ナノブロック）は株式会社カワダの登録商標です。本アプリは非公式のファン作品です。';
   const legalSize = fitFont(ctx, legalText, CW, 20, 400, 14);
   const legal = wrap(ctx, legalText, CW);
   const legalH = legal.length * 30;
