@@ -93,7 +93,8 @@ export const PICTURES = {
   'kitan-nemu': { file: 'data/samples/kitan-nemu.png', label: 'ネム', category: 'kitan' },
   'kitan-xiaolan': { file: 'data/samples/kitan-xiaolan.png', label: 'シャオラン', category: 'kitan' },
   // チビ咲耶は月蝕綺譚に移した（v53）。URL の名前は chibi-sakuya のまま（保存・ランキング・シェアの URL を変えない）
-  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶', category: 'kitan' },
+  // v58：三面図から画像AIで描いた粗めのドット絵に作り直し、顔と体を手で整えた（~/dev/nano2d_kitan/sakuya/fix_chibi_sakuya_v2.py）。カードは画像AIの元絵
+  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', card: 'data/samples/card-chibi-sakuya.png', label: 'チビ咲耶', category: 'kitan' },
   // チビイズナ・チビネム・チビシャオランは、カード（card）に画像AIの細かい元絵を出し、ゲームは file の 40×40 で遊ぶ（v57。チビ咲耶と同じ見え方）
   // チビイズナ：画像AIのドット絵を 40×40 に落として、目・口・色を手で整えた（v54。作り方は ~/dev/nano2d_kitan/izuna/fix_chibi_izuna_grid.py）
   'chibi-izuna': { file: 'data/samples/chibi-izuna.png', card: 'data/samples/card-chibi-izuna.png', label: 'チビイズナ', category: 'kitan' },
