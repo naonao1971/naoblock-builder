@@ -87,21 +87,17 @@ export const PICTURES = {
   'cnp-setsuna': { file: 'data/samples/cnp-setsuna.png', label: 'セツナ', category: 'cnp' },
   'cnp-ema': { file: 'data/samples/cnp-ema.png', label: 'エマ', category: 'cnp' },
   'cnp-taruto': { file: 'data/samples/cnp-taruto.png', label: 'タルト', category: 'cnp' },
-  // 月蝕綺譚
-  'kitan-izuna': { file: 'data/samples/kitan-izuna.png', label: 'イズナ', category: 'kitan' },
-  'kitan-sakuya': { file: 'data/samples/kitan-sakuya.png', label: '咲耶', category: 'kitan' },
-  'kitan-nemu': { file: 'data/samples/kitan-nemu.png', label: 'ネム', category: 'kitan' },
-  'kitan-xiaolan': { file: 'data/samples/kitan-xiaolan.png', label: 'シャオラン', category: 'kitan' },
-  // チビ咲耶は月蝕綺譚に移した（v53）。URL の名前は chibi-sakuya のまま（保存・ランキング・シェアの URL を変えない）
-  // v58：三面図から画像AIで描いた粗めのドット絵に作り直し、顔と体を手で整えた（~/dev/nano2d_kitan/sakuya/fix_chibi_sakuya_v2.py）。カードは画像AIの元絵
-  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', card: 'data/samples/card-chibi-sakuya.png', label: 'チビ咲耶', category: 'kitan' },
+  // 月蝕綺譚：ちびの 4 体だけ（v59 で最初の 4 体 kitan-* を外し、名前の「チビ」を取った。URL の名前は chibi-* のまま）
   // チビイズナ・チビネム・チビシャオランは、カード（card）に画像AIの細かい元絵を出し、ゲームは file の 40×40 で遊ぶ（v57。チビ咲耶と同じ見え方）
   // チビイズナ：画像AIのドット絵を 40×40 に落として、目・口・色を手で整えた（v54。作り方は ~/dev/nano2d_kitan/izuna/fix_chibi_izuna_grid.py）
-  'chibi-izuna': { file: 'data/samples/chibi-izuna.png', card: 'data/samples/card-chibi-izuna.png', label: 'チビイズナ', category: 'kitan' },
+  'chibi-izuna': { file: 'data/samples/chibi-izuna.png', card: 'data/samples/card-chibi-izuna.png', label: 'イズナ', category: 'kitan' },
+  // チビ咲耶は月蝕綺譚に移した（v53）。URL の名前は chibi-sakuya のまま（保存・ランキング・シェアの URL を変えない）
+  // v58：三面図から画像AIで描いた粗めのドット絵に作り直し、顔と体を手で整えた（~/dev/nano2d_kitan/sakuya/fix_chibi_sakuya_v2.py）。カードは画像AIの元絵
+  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', card: 'data/samples/card-chibi-sakuya.png', label: '咲耶', category: 'kitan' },
   // チビネム：同じ作り方（v55。~/dev/nano2d_kitan/nemu/fix_chibi_nemu_grid.py）。髪は紺に落ちるので紫に、リボンはピンクに
-  'chibi-nemu': { file: 'data/samples/chibi-nemu.png', card: 'data/samples/card-chibi-nemu.png', label: 'チビネム', category: 'kitan' },
+  'chibi-nemu': { file: 'data/samples/chibi-nemu.png', card: 'data/samples/card-chibi-nemu.png', label: 'ネム', category: 'kitan' },
   // チビシャオラン：色をブロックに寄せてから縮め、頭（お団子・前髪）は元絵の形、顔と体は手で整えた（v57。~/dev/nano2d_kitan/xiaolan/fix_chibi_xiaolan_v2.py）
-  'chibi-xiaolan': { file: 'data/samples/chibi-xiaolan.png', card: 'data/samples/card-chibi-xiaolan.png', label: 'チビシャオラン', category: 'kitan' },
+  'chibi-xiaolan': { file: 'data/samples/chibi-xiaolan.png', card: 'data/samples/card-chibi-xiaolan.png', label: 'シャオラン', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
