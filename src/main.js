@@ -11,7 +11,8 @@ import { completedPixels, originalPixels, drawPixels } from './sample.js';
 import { formatTime, shareWithImage, drawFinishImage, downloadBlob, renderRealParts, renderResult } from './finish.js';
 import { loadRanking, recordRanking } from './ranking.js';
 import { renderPages, renderPagesNow, pagesToPdf, fillPrintRoot } from './print.js';
-import { subjectFromUrl, qrProblem, saveKey, PICTURES, shownCategories, isPictureShown } from './subjects.js';
+import { subjectFromUrl, qrProblem, saveKey, PICTURES, shownCategories, isPictureShown, isLinePicture } from './subjects.js';
+import { lineArchive } from './linegate.js';
 import { nounBrowser } from './nounlist.js';
 import { qrPanel } from './qrpanel.js';
 
@@ -890,7 +891,7 @@ function showVersion() {
 
 // スタート画面：CATEGORIES の順にタブを並べ、選んだタブの中身（番号の欄・絵のカード・準備中）だけを出す。
 // 最初に開くタブは、URL の #（例：#cnp）→ この画面で前に開いていたタブ → いちばん前のタブ の順に決める
-function pictureCard(name, pic) {
+export function pictureCard(name, pic) {
   const a = document.createElement('a');
   a.className = 'picture-card';
   a.href = `?pic=${encodeURIComponent(name)}`;
@@ -922,7 +923,7 @@ function categoryPanel(cat, form, qrOpts) {
     sec.append(form, browser.element);
     sec.onshow = browser.show;
   } else if (cat.input === 'cards') {
-    const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key && isPictureShown(pic)).map(([name, pic]) => pictureCard(name, pic));
+    const cards = Object.entries(PICTURES).filter(([, pic]) => pic.category === cat.key && isPictureShown(pic) && !isLinePicture(pic)).map(([name, pic]) => pictureCard(name, pic));
     if (cards.length) {
       const list = document.createElement('div');
       list.className = 'picture-list';
@@ -959,7 +960,9 @@ function renderCategories(qr = null) {
   tabs.setAttribute('aria-label', '絵の種類');
   const buttons = [];
   const panels = [];
+  let archive = null;
   const select = (key, { focus = false, remember = true } = {}) => {
+    archive?.close();
     categories.forEach((cat, i) => {
       const on = cat.key === key;
       buttons[i].setAttribute('aria-selected', String(on));
@@ -996,8 +999,14 @@ function renderCategories(qr = null) {
     panels.push(panel);
   });
   tabs.append(...buttons);
-  box.replaceChildren(tabs, ...panels);
+  // LINE友だち限定アーカイブ：タブの下の緑のボタン。開いたら、タブの中身は隠す
+  archive = lineArchive(pictureCard, () => {
+    buttons.forEach((b) => { b.setAttribute('aria-selected', 'false'); b.tabIndex = -1; });
+    panels.forEach((p) => { p.hidden = true; });
+  });
+  box.replaceChildren(tabs, ...(archive ? [archive.button] : []), ...panels, ...(archive ? [archive.panel] : []));
   select(qr ? 'qr' : firstTab(categories), { remember: false });
+  if (!qr) archive?.openIfReturning();
 }
 
 function init() {
