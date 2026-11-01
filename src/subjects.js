@@ -35,7 +35,6 @@ export const CATEGORIES = [
 export const PICTURES = {
   // ハロウィンウィーク（10/31 まで）。from の日から 1 体ずつカードが出る
   'halloween-obake': { file: 'data/samples/halloween-obake.png', label: 'おばけとかぼちゃ', category: 'halloween', from: '2026-10-25' },
-  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶', category: 'ninja' },
   // クリプト忍者（NinjaDAO 公式サイトのキャラクター一覧と同じ並び・名前）。背景は透明、ナノブロックの色だけで描いた 40 マスのドット絵
   'ninja-jin': { file: 'data/samples/ninja-jin.png', label: '刃', category: 'ninja' },
   'ninja-sakuya': { file: 'data/samples/ninja-sakuya.png', label: '咲耶', category: 'ninja' },
@@ -93,6 +92,8 @@ export const PICTURES = {
   'kitan-sakuya': { file: 'data/samples/kitan-sakuya.png', label: '咲耶', category: 'kitan' },
   'kitan-nemu': { file: 'data/samples/kitan-nemu.png', label: 'ネム', category: 'kitan' },
   'kitan-xiaolan': { file: 'data/samples/kitan-xiaolan.png', label: 'シャオラン', category: 'kitan' },
+  // チビ咲耶は月蝕綺譚に移した（v53）。URL の名前は chibi-sakuya のまま（保存・ランキング・シェアの URL を変えない）
+  'chibi-sakuya': { file: 'data/samples/chibi-sakuya.png', label: 'チビ咲耶', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
