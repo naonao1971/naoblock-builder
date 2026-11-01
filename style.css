@@ -506,7 +506,6 @@ button:not(:disabled):active, .button:active,
 
 /* 無料の一行と、公式 LINE の入口 */
 .free { color: var(--muted); font-size: 0.85rem; margin: -4px 0 12px; word-break: auto-phrase; }
-.line-follow { text-align: center; margin: 12px 0 0; font-weight: bold; }
 /* LINE友だち限定アーカイブ（src/linegate.js） */
 .archive-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 48px; margin: 16px 0 0; padding: 10px 14px; border: 0; border-radius: 12px; background: #06c755; color: #fff; font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer; }
 .archive-btn[aria-pressed="true"] { background: #04a346; }
