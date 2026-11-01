@@ -97,10 +97,10 @@ function checkSubjects() {
   console.log(`  ${clearOk ? 'OK ' : 'NG '}背景が透明な絵で、白（f4f4f4）と黒が残り、透明だけが空く：${clearGrid}`);
   ok = ok && clearOk;
   const order = CATEGORIES.map((c) => c.label).join('・');
-  const orderOk = order === '🎃ハロウィン・Nouns・クリプト忍者・CNP・nanoQR';
+  const orderOk = order === '🎃ハロウィン・Nouns・クリプト忍者・CNP・月蝕綺譚・nanoQR';
   console.log(`  ${orderOk ? 'OK ' : 'NG '}スタート画面のカテゴリーの順：${order}`);
-  const chibiOk = PICTURES['chibi-sakuya']?.category === 'ninja';
-  console.log(`  ${chibiOk ? 'OK ' : 'NG '}チビ咲耶はクリプト忍者（ninja）`);
+  const chibiOk = PICTURES['chibi-sakuya']?.category === 'kitan';
+  console.log(`  ${chibiOk ? 'OK ' : 'NG '}チビ咲耶は月蝕綺譚（kitan）`);
   ok = ok && orderOk && chibiOk;
   // 期間限定：ハロウィンのタブは 10/31（日本時間）まで。絵は from の日から
   const shown = (d) => shownCategories(d).map((c) => c.key).includes('halloween');
@@ -110,7 +110,7 @@ function checkSubjects() {
     ['11/1 0:00（日本時間）は今日が 11/1', todayJst(new Date('2026-10-31T15:00:00Z')) === '2026-11-01'],
     ['10/31 はハロウィンのタブが出る', shown('2026-10-31')],
     ['11/1 はハロウィンのタブが出ない', !shown('2026-11-01')],
-    ['11/1 でもほかのタブは 4 つとも出る', shownCategories('2026-11-01').length === 4],
+    ['11/1 でもほかのタブは 5 つとも出る', shownCategories('2026-11-01').length === 5],
     ['おばけとかぼちゃは 10/24 には出ない', !isPictureShown(obake, '2026-10-24')],
     ['おばけとかぼちゃは 10/25 から出る', isPictureShown(obake, '2026-10-25')],
     ['期間が終わっても ?pic=halloween-obake で遊べる', subjectFromUrl('?pic=halloween-obake')?.label === 'おばけとかぼちゃ'],
