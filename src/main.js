@@ -22,6 +22,7 @@ const PLATE_HEX = 'd9d6cf';
 const HELP_KEY = 'naoblock:help-seen-game';
 const GUIDE_KEY = 'naoblock:guide'; // ガイドあり／なし（前回の選択を覚えておく。はじめての人は「あり」）
 const TAB_KEY = 'naoblock:tab'; // スタート画面で開いていたタブ（遊んで戻ったとき、同じタブを開く）
+const ARCHIVE_TAB = 'archive'; // TAB_KEY に入れる「LINE友だち限定を開いていた」の印
 const CLEAR_PAUSE_MS = 1300;
 const AUTO_MS = 100; // 「最後まで自動で組み立てる」で 1 個置く間隔（時計の針と同じ 0.1 秒ごと）
 // タイムアタック（仮の数字。遊んで調整する）
@@ -949,7 +950,7 @@ function firstTab(categories) {
   return keys.includes(saved) ? saved : keys[0];
 }
 
-// qr：?qr= がおかしかったとき { message, value, colors }（nanoQR タブを開いて言葉を出す）
+// qr：?qr= がおかしかったとき { message, value, colors }（nanoQR を開いて言葉を出す。LINE 限定なら、限定の中を開く）
 function renderCategories(qr = null) {
   const categories = shownCategories();
   const box = $('categories');
@@ -999,14 +1000,21 @@ function renderCategories(qr = null) {
     panels.push(panel);
   });
   tabs.append(...buttons);
-  // LINE友だち限定アーカイブ：タブの下の緑のボタン。開いたら、タブの中身は隠す
-  archive = lineArchive(pictureCard, () => {
+  // LINE友だち限定アーカイブ：タブの下の緑のボタン。開いたら、タブの中身は隠す（遊んで戻ったときも開くように覚えておく）
+  archive = lineArchive(pictureCard, (cat) => categoryPanel(cat, form, qr || {}), () => {
     buttons.forEach((b) => { b.setAttribute('aria-selected', 'false'); b.tabIndex = -1; });
     panels.forEach((p) => { p.hidden = true; });
+    try { sessionStorage.setItem(TAB_KEY, ARCHIVE_TAB); } catch { /* 覚えられなくても開ける */ }
   });
   box.replaceChildren(tabs, ...(archive ? [archive.button] : []), ...panels, ...(archive ? [archive.panel] : []));
-  select(qr ? 'qr' : firstTab(categories), { remember: false });
-  if (!qr) archive?.openIfReturning();
+  const qrTab = categories.some((c) => c.key === 'qr');
+  select(qr && qrTab ? 'qr' : firstTab(categories), { remember: false });
+  if (qr && !qrTab) archive?.open();
+  else if (!qr) {
+    let saved = null;
+    try { saved = sessionStorage.getItem(TAB_KEY); } catch { /* 覚えられない環境では開かない */ }
+    archive?.openIfReturning(!location.hash && saved === ARCHIVE_TAB);
+  }
 }
 
 function init() {

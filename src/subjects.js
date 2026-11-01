@@ -20,14 +20,14 @@ import { isQrUrl, qrByteLength, qrColors, qrPicture, QR_MAX_BYTES, QR_DEFAULT_CO
 //   ready：false なら「準備中」と出すだけ（note があれば一言そえる）。
 //   カードのカテゴリーで絵が 1 つもないときも「準備中」
 //   until：期間限定のカテゴリー。この日（日本時間）が終わったら、タブを出さず「LINE友だち限定アーカイブ」に移す（絵の URL はそのまま遊べる）
-//   line：true なら、タブを出さず「LINE友だち限定」の中にだけ出す（src/linegate.js）
+//   line：true なら、タブを出さず「LINE友だち限定」の中にだけ出す（src/linegate.js。nanoQR のような絵でないカテゴリーは、入力欄ごと移す）
 export const CATEGORIES = [
   { key: 'halloween', label: '🎃ハロウィン', input: 'cards', ready: true, until: '2026-10-31' },
   { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
   { key: 'ninja', label: 'クリプト忍者', input: 'cards', ready: true },
   { key: 'cnp', label: 'CNP', input: 'cards', ready: true },
   { key: 'kitan', label: '月蝕綺譚', input: 'cards', ready: true },
-  { key: 'qr', label: 'nanoQR', input: 'url', ready: true, note: 'あなたのサイトへの入口を、ナノブロックで作ろう' },
+  { key: 'qr', label: 'nanoQR', input: 'url', ready: true, line: true, note: 'あなたのサイトへの入口を、ナノブロックで作ろう' },
 ];
 
 // 絵の一覧（URL に出る名前 → 画像・画面に出す名前・カテゴリー）。
@@ -107,6 +107,8 @@ export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e
 export const shownCategories = (today = todayJst()) => CATEGORIES.filter((c) => (!c.until || today <= c.until) && !c.line);
 // 期間が終わったカテゴリー（LINE友だち限定アーカイブに出す。新しい季節が上）
 export const archivedCategories = (today = todayJst()) => CATEGORIES.filter((c) => c.input === 'cards' && c.until && today > c.until).sort((a, b) => b.until.localeCompare(a.until));
+// LINE 限定の、絵でないカテゴリー（nanoQR など。入力欄ごと LINE友だち限定の中に出す）
+export const lineTools = () => CATEGORIES.filter((c) => c.line && c.ready && c.input !== 'cards');
 // LINE 限定の印（絵かカテゴリーに line: true）
 export const isLinePicture = (pic) => !!(pic.line || CATEGORIES.find((c) => c.key === pic.category)?.line);
 // スタート画面に出す絵（from があれば、その日から。1 日 1 体ずつ増やすため）
