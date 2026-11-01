@@ -19,7 +19,8 @@ import { isQrUrl, qrByteLength, qrColors, qrPicture, QR_MAX_BYTES, QR_DEFAULT_CO
 //   input：'noun'（番号を入れる）| 'cards'（カードから選ぶ）| 'url'（URL を入れる）
 //   ready：false なら「準備中」と出すだけ（note があれば一言そえる）。
 //   カードのカテゴリーで絵が 1 つもないときも「準備中」
-//   until：期間限定のカテゴリー。この日（日本時間）が終わったら、タブを出さない（絵の URL はそのまま遊べる）
+//   until：期間限定のカテゴリー。この日（日本時間）が終わったら、タブを出さず「LINE友だち限定アーカイブ」に移す（絵の URL はそのまま遊べる）
+//   line：true なら、タブを出さず「LINE友だち限定」の中にだけ出す（src/linegate.js）
 export const CATEGORIES = [
   { key: 'halloween', label: '🎃ハロウィン', input: 'cards', ready: true, until: '2026-10-31' },
   { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
@@ -32,6 +33,7 @@ export const CATEGORIES = [
 // 絵の一覧（URL に出る名前 → 画像・画面に出す名前・カテゴリー）。
 // 絵を足すときは、画像を data/samples/ に置いて、ここに 1 行足すだけ（スタート画面のカードも自動でできる）。
 // category は CATEGORIES の input: 'cards' のどれか。カテゴリーは URL・保存・ランキングには入らない
+// line: true を付けた絵は、タブには出さず「LINE友だち限定」の中にだけ出す（カテゴリーに付ければ、その中の全部の絵）
 export const PICTURES = {
   // ハロウィンウィーク（10/31 まで）。from の日から 1 体ずつカードが出る
   'halloween-obake': { file: 'data/samples/halloween-obake.png', label: 'おばけとかぼちゃ', category: 'halloween', from: '2026-10-25' },
@@ -101,8 +103,12 @@ export const PICTURES = {
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
-// スタート画面に出すカテゴリー（期間限定は until の日まで）
-export const shownCategories = (today = todayJst()) => CATEGORIES.filter((c) => !c.until || today <= c.until);
+// スタート画面に出すカテゴリー（期間限定は until の日まで。LINE 限定のカテゴリーは出さない）
+export const shownCategories = (today = todayJst()) => CATEGORIES.filter((c) => (!c.until || today <= c.until) && !c.line);
+// 期間が終わったカテゴリー（LINE友だち限定アーカイブに出す。新しい季節が上）
+export const archivedCategories = (today = todayJst()) => CATEGORIES.filter((c) => c.input === 'cards' && c.until && today > c.until).sort((a, b) => b.until.localeCompare(a.until));
+// LINE 限定の印（絵かカテゴリーに line: true）
+export const isLinePicture = (pic) => !!(pic.line || CATEGORIES.find((c) => c.key === pic.category)?.line);
 // スタート画面に出す絵（from があれば、その日から。1 日 1 体ずつ増やすため）
 export const isPictureShown = (pic, today = todayJst()) => !pic.from || pic.from <= today;
 // 古い URL の名前 → 今の名前（?pic=1・?sample=1 のため）

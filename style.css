@@ -502,3 +502,17 @@ button:not(:disabled):active, .button:active,
 /* 無料の一行と、公式 LINE の入口 */
 .free { color: var(--muted); font-size: 0.85rem; margin: -4px 0 12px; word-break: auto-phrase; }
 .line-follow { text-align: center; margin: 12px 0 0; font-weight: bold; }
+/* LINE友だち限定アーカイブ（src/linegate.js） */
+.archive-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 48px; margin: 16px 0 0; padding: 10px 14px; border: 0; border-radius: 12px; background: #06c755; color: #fff; font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer; }
+.archive-btn[aria-pressed="true"] { background: #04a346; }
+.archive-btn small { font-size: 0.85rem; font-weight: 400; opacity: 0.95; }
+.archive { margin: 16px 0 0; }
+.archive-gate { text-align: center; padding: 16px; border: 3px solid var(--fg); background: #fff; }
+.archive-gate p { margin: 6px 0; }
+.archive-gate .note { margin-top: 12px; color: var(--muted); font-size: 0.85rem; }
+.line-btn { display: inline-block; margin: 10px 4px 0; padding: 12px 18px; border: 0; border-radius: 12px; background: #06c755; color: #fff; font: inherit; font-size: 1rem; font-weight: 900; text-decoration: none; cursor: pointer; }
+.line-btn.sub { background: #eadfe3; color: #3c3237; }
+.season { font-size: 1rem; margin: 20px 0 8px; }
+.season:first-child { margin-top: 0; }
+.archive-login { text-align: center; margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
+.logout { border: 0; background: transparent; color: var(--accent); font: inherit; text-decoration: underline; padding: 8px; cursor: pointer; }
