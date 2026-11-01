@@ -98,6 +98,8 @@ export const PICTURES = {
   'chibi-izuna': { file: 'data/samples/chibi-izuna.png', label: 'チビイズナ', category: 'kitan' },
   // チビネム：同じ作り方（v55。~/dev/nano2d_kitan/nemu/fix_chibi_nemu_grid.py）。髪は紺に落ちるので紫に、リボンはピンクに
   'chibi-nemu': { file: 'data/samples/chibi-nemu.png', label: 'チビネム', category: 'kitan' },
+  // チビシャオラン：同じ作り方だが、変換のままだと顔と体がつぶれるので左右対称に描き直した（v56。~/dev/nano2d_kitan/xiaolan/fix_chibi_xiaolan_grid.py）
+  'chibi-xiaolan': { file: 'data/samples/chibi-xiaolan.png', label: 'チビシャオラン', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
