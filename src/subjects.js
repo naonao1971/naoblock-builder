@@ -26,7 +26,7 @@ export const CATEGORIES = [
   { key: 'nouns', label: 'Nouns', input: 'noun', ready: true },
   { key: 'ninja', label: 'クリプト忍者', input: 'cards', ready: true },
   { key: 'cnp', label: 'CNP', input: 'cards', ready: true },
-  { key: 'kitan', label: '月蝕綺譚', input: 'cards', ready: true },
+  { key: 'kitan', label: '月蝕綺譚', input: 'cards', ready: true, line: true },
   { key: 'qr', label: 'nanoQR', input: 'url', ready: true, line: true, note: 'あなたのサイトへの入口を、ナノブロックで作ろう' },
 ];
 
