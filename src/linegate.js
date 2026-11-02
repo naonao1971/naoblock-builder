@@ -1,7 +1,7 @@
 // LINE友だち限定アーカイブ（LIFF でログイン → 公式LINE「ナオブロックラボ」の友だちか確かめる。ブラウザ内だけの判定）
 // 期間が終わったカテゴリーの絵と、line: true の印を付けた絵・カテゴリー（nanoQR など）をここに出す。
 // ?pic= ?qr= の直リンクからは今までどおり誰でも遊べる（簡易版。本格的に守るならサーバー側の判定が要る）
-import { PICTURES, archivedCategories, isLinePicture, isPictureShown, lineTools } from './subjects.js';
+import { CATEGORIES, PICTURES, archivedCategories, isLinePicture, isPictureShown, lineTools } from './subjects.js';
 
 const LIFF_ID = '2012312496-a5j3Y0Qb'; // LINE Developers の「naoblock 2D アーカイブ」（3D 版とは別の LIFF アプリ）
 const LINE_ADD = 'https://line.me/R/ti/p/@134wkonl';
@@ -51,7 +51,15 @@ export function lineArchive(pictureCard, toolPanel, onOpen) {
         h.textContent = `🎁 ${cat.label}`;
         return [h, toolPanel(cat)];
       }),
-      ...(lineOnly.length ? list('🎁 友だち限定', lineOnly) : []),
+      // カテゴリーごと限定（月蝕綺譚など）は、カテゴリーの名前を見出しに。絵 1 枚だけの限定は「友だち限定」にまとめる
+      ...CATEGORIES.filter((c) => c.line).flatMap((c) => {
+        const pics = lineOnly.filter(([, pic]) => pic.category === c.key);
+        return pics.length ? list(`🎁 ${c.label}`, pics) : [];
+      }),
+      ...(() => {
+        const rest = lineOnly.filter(([, pic]) => !CATEGORIES.find((c) => c.key === pic.category)?.line);
+        return rest.length ? list('🎁 友だち限定', rest) : [];
+      })(),
       ...seasons.flatMap((s) => list(`${s.cat.label} ${s.cat.until.slice(0, 4)}`, s.pics)),
     );
     const p = document.createElement('p');
