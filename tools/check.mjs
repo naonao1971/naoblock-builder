@@ -14,7 +14,7 @@ import { buildBlocks, verifyBlocks, orientationCount } from '../src/pieces.js';
 import { buildStages } from '../src/stages.js';
 import { partsList, shoppingList } from '../src/plan.js';
 import { buildSteps, verifySteps } from '../src/steps.js';
-import { subjectFromUrl, saveKey, PICTURES, CATEGORIES, todayJst, shownCategories, isPictureShown } from '../src/subjects.js';
+import { subjectFromUrl, saveKey, PICTURES, CATEGORIES, todayJst, shownCategories, isPictureShown, isLinePicture } from '../src/subjects.js';
 import { gridFromPixels } from '../src/picture.js';
 import { rankingKey } from '../src/ranking.js';
 import { rangeFor, parseStart } from '../src/nounlist.js';
@@ -110,7 +110,8 @@ function checkSubjects() {
     ['11/1 0:00（日本時間）は今日が 11/1', todayJst(new Date('2026-10-31T15:00:00Z')) === '2026-11-01'],
     ['10/31 はハロウィンのタブが出る', shown('2026-10-31')],
     ['11/1 はハロウィンのタブが出ない', !shown('2026-11-01')],
-    ['11/1 でもほかのタブは 5 つとも出る', shownCategories('2026-11-01').length === 5],
+    ['11/2 の表のタブは Nouns・クリプト忍者・CNP の 3 つ（3D 版とそろえる。月蝕綺譚・nanoQR は LINE 限定）', shownCategories('2026-11-02').map((c) => c.key).join() === 'nouns,ninja,cnp'],
+    ['月蝕綺譚の絵は全部 LINE 限定', Object.values(PICTURES).filter((p) => p.category === 'kitan').every(isLinePicture)],
     ['おばけとかぼちゃは 10/24 には出ない', !isPictureShown(obake, '2026-10-24')],
     ['おばけとかぼちゃは 10/25 から出る', isPictureShown(obake, '2026-10-25')],
     ['期間が終わっても ?pic=halloween-obake で遊べる', subjectFromUrl('?pic=halloween-obake')?.label === 'おばけとかぼちゃ'],
