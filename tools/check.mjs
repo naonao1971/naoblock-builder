@@ -25,7 +25,7 @@ const opt = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').s
 const id = args.find((a) => !a.startsWith('--'));
 
 // 題材（src/subjects.js）の検算：URL → 題材、保存とランキングの名前、シェアの文面・URL
-// Nouns の名前と文面は、題材に分ける前（v16）と 1 文字も変わらないこと
+// Nouns の名前は、題材に分ける前（v16）と 1 文字も変わらないこと。シェアの文面は v68 から冒頭にタブのハッシュタグ
 function checkSubjects() {
   const href = 'https://naonao1971.github.io/naoblock-builder/?noun=11';
   const r = { pieces: 93, elapsedMs: 754000, mode: 'practice', guide: false };
@@ -33,26 +33,26 @@ function checkSubjects() {
   const cases = [
     { search: '?noun=11', kind: 'noun', id: '11', label: 'Noun 11',
       save: 'naoblock:game:v1:noun:11:practice', rank: 'naoblock:ranking:v1:noun:11:timeattack', rankGuide: 'naoblock:ranking:v1:noun:11:timeattack:guide',
-      share: 'Noun 11 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock #Nouns',
-      shareTa: 'Noun 11 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock #Nouns',
+      share: '#Nouns Noun 11 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
+      shareTa: '#Nouns Noun 11 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
       url: 'https://naonao1971.github.io/naoblock-builder/?noun=11', file: 'naoblock-noun11.png', pdf: 'Noun_11_naoblock.pdf' },
     { search: '?noun=007', kind: 'noun', id: '7', label: 'Noun 7' },
     { search: '?pic=chibi-sakuya', kind: 'picture', id: 'chibi-sakuya', label: '咲耶',
       save: 'naoblock:game:v1:picture:chibi-sakuya:practice', rank: 'naoblock:ranking:v1:picture:chibi-sakuya:timeattack', rankGuide: 'naoblock:ranking:v1:picture:chibi-sakuya:timeattack:guide',
-      share: '咲耶 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
-      shareTa: '咲耶 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
+      share: '#月蝕綺譚 咲耶 をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock',
+      shareTa: '#月蝕綺譚 咲耶 をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock',
       url: 'https://naonao1971.github.io/naoblock-builder/?pic=chibi-sakuya', file: 'naoblock-pic-chibi-sakuya.png', pdf: 'chibi-sakuya_naoblock.pdf' },
     { search: '?pic=1', kind: 'picture', id: 'chibi-sakuya', label: '咲耶' },
     { search: '?sample=1', kind: 'picture', id: 'chibi-sakuya', label: '咲耶' },
     { search: `?qr=${encodeURIComponent('https://naoblock.jp')}`, kind: 'qr', id: 'https://naoblock.jp', label: 'nanoQR',
       save: 'naoblock:game:v1:qr:https://naoblock.jp:practice', rank: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack', rankGuide: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack:guide',
-      share: 'nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
-      shareTa: 'nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      share: '#nanoQR nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      shareTa: '#nanoQR nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
       url: 'https://naonao1971.github.io/naoblock-builder/?qr=https%3A%2F%2Fnaoblock.jp', file: 'naoblock-qr.png', pdf: 'nanoQR_naoblock.pdf' },
     { search: `?qr=${encodeURIComponent('https://naoblock.jp')}&dark=red&accent=peach`, kind: 'qr', id: 'https://naoblock.jp', label: 'nanoQR',
       save: 'naoblock:game:v1:qr:https://naoblock.jp:practice', rank: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack', rankGuide: 'naoblock:ranking:v1:qr:https://naoblock.jp:timeattack:guide',
-      share: 'nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
-      shareTa: 'nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      share: '#nanoQR nanoQR をナオブロックで組み立てた！ パーツ 93個・12分 #naoblock\nこのQRの行き先：https://naoblock.jp',
+      shareTa: '#nanoQR nanoQR をナオブロックで組み立てた！ タイムアタック（ガイドあり） 12分34秒 #naoblock\nこのQRの行き先：https://naoblock.jp',
       url: 'https://naonao1971.github.io/naoblock-builder/?qr=https%3A%2F%2Fnaoblock.jp&dark=red&accent=peach', file: 'naoblock-qr.png', pdf: 'nanoQR_naoblock.pdf' },
     { search: '?qr=ftp%3A%2F%2Fexample.com', none: true },
     { search: `?qr=${encodeURIComponent(`https://example.com/${'a'.repeat(60)}`)}`, none: true },
