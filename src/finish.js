@@ -31,8 +31,17 @@ export function shareTextFor(name, tags, pieces, elapsedMs, mode = 'practice', g
   return `${name} をナオブロックで組み立てた！ パーツ ${pieces}個・${formatTimeShort(elapsedMs)} ${tags}`;
 }
 
+// タブの名前 → 冒頭に付けるハッシュタグ（「🎃ハロウィン」→「#ハロウィン」。絵文字と空白は外す）
+export function categoryTag(label) {
+  const word = String(label ?? '').replace(/[\p{Extended_Pictographic}\u200d\ufe0f\s]/gu, '');
+  return word ? `#${word}` : '';
+}
+
+// 文面の冒頭にタブのハッシュタグを付ける（タグがなければそのまま）
+export const withLeadTag = (tag, text) => (tag ? `${tag} ${text}` : text);
+
 export function shareText(id, pieces, elapsedMs, mode = 'practice', guide = false) {
-  return shareTextFor(`Noun ${id}`, '#naoblock #Nouns', pieces, elapsedMs, mode, guide);
+  return withLeadTag('#Nouns', shareTextFor(`Noun ${id}`, '#naoblock', pieces, elapsedMs, mode, guide));
 }
 
 // アプリの URL（name=value だけを付ける）

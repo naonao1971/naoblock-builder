@@ -12,7 +12,7 @@
 //   pdfName：組立図の PDF を保存するときの名前
 import { fetchSeed, fetchImageData, nounPicture } from './nouns.js';
 import { loadPictureGrid } from './picture.js';
-import { shareText, shareTextFor, appUrl, pageUrl } from './finish.js';
+import { shareText, shareTextFor, appUrl, pageUrl, categoryTag, withLeadTag } from './finish.js';
 import { isQrUrl, qrByteLength, qrColors, qrPicture, QR_MAX_BYTES, QR_DEFAULT_COLORS } from './qr.js';
 
 // スタート画面のカテゴリー（この順に並べる）
@@ -114,6 +114,8 @@ export const lineTools = () => CATEGORIES.filter((c) => c.line && c.ready && c.i
 export const isLinePicture = (pic) => !!(pic.line || CATEGORIES.find((c) => c.key === pic.category)?.line);
 // スタート画面に出す絵（from があれば、その日から。1 日 1 体ずつ増やすため）
 export const isPictureShown = (pic, today = todayJst()) => !pic.from || pic.from <= today;
+// シェアの冒頭に付けるタブのハッシュタグ（「#月蝕綺譚」「#CNP」など）
+export const categoryTagFor = (key) => categoryTag(CATEGORIES.find((c) => c.key === key)?.label);
 // 古い URL の名前 → 今の名前（?pic=1・?sample=1 のため）
 const PICTURE_ALIASES = { 1: 'chibi-sakuya' };
 
@@ -149,7 +151,7 @@ export function pictureSubject(given) {
     scope: 'この絵',
     load: () => loadPictureGrid(pic.file),
     originalNote: '元絵：ドット絵の色（40×40 に縮めたもの）',
-    shareText: (r) => shareTextFor(pic.label, '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide),
+    shareText: (r) => withLeadTag(categoryTagFor(pic.category), shareTextFor(pic.label, '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide)),
     url: (href) => pageUrl(href, 'pic', name),
     fileName: `naoblock-pic-${name}.png`,
     pdfName: `${name}_naoblock.pdf`,
@@ -170,7 +172,7 @@ export function qrSubject(url, colors = {}) {
     colors: c,
     load: async () => qrPicture(url, c),
     originalNote: '元絵：QR コード（外枠と余白つき）',
-    shareText: (r) => `${shareTextFor('nanoQR', '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide, r.auto)}\nこのQRの行き先：${url}`,
+    shareText: (r) => `${withLeadTag(categoryTagFor('qr'), shareTextFor('nanoQR', '#naoblock', r.pieces, r.elapsedMs, r.mode, r.guide, r.auto))}\nこのQRの行き先：${url}`,
     url: (href) => {
       const u = new URL(pageUrl(href, 'qr', url));
       if (c.dark !== QR_DEFAULT_COLORS.dark || c.accent !== QR_DEFAULT_COLORS.accent) {
