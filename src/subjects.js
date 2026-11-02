@@ -100,6 +100,7 @@ export const PICTURES = {
   'chibi-nemu': { file: 'data/samples/chibi-nemu.png', card: 'data/samples/card-chibi-nemu.png', label: 'ネム', category: 'kitan' },
   // チビシャオラン：色をブロックに寄せてから縮め、頭（お団子・前髪）は元絵の形、顔と体は手で整えた（v57。~/dev/nano2d_kitan/xiaolan/fix_chibi_xiaolan_v2.py）
   'chibi-xiaolan': { file: 'data/samples/chibi-xiaolan.png', card: 'data/samples/card-chibi-xiaolan.png', label: 'シャオラン', category: 'kitan' },
+  'chibi-uka': { file: 'data/samples/chibi-uka.png', card: 'data/samples/card-chibi-uka.png', label: 'ウカ', category: 'kitan' },
 };
 // 今日の日付（日本時間の 'YYYY-MM-DD'）
 export const todayJst = (now = new Date()) => new Date(now.getTime() + 9 * 3600e3).toISOString().slice(0, 10);
