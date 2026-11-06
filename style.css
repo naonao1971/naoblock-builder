@@ -510,6 +510,12 @@ button:not(:disabled):active, .button:active,
 .archive-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 48px; margin: 16px 0 0; padding: 10px 14px; border: 0; border-radius: 12px; background: #06c755; color: #fff; font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer; }
 .archive-btn[aria-pressed="true"] { background: #04a346; }
 .archive-btn small { font-size: 0.85rem; font-weight: 400; opacity: 0.95; }
+/* 完成画面の公式 LINE の案内（?noun= などの直リンクから来た人向け） */
+.line-invite { margin: 20px 0 0; padding: 14px; border-radius: 12px; background: #eafaf0; text-align: center; }
+.line-invite p { margin: 0 0 10px; font-weight: bold; word-break: auto-phrase; }
+.line-invite .note { margin: 10px 0 0; font-weight: 400; }
+.line-invite .note a { color: #04a346; font-weight: bold; }
+.line-invite-btn { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 14px; border-radius: 12px; background: #06c755; color: #fff; font-weight: 900; text-decoration: none; }
 .archive { margin: 16px 0 0; }
 .archive-gate { text-align: center; padding: 16px; border: 3px solid var(--fg); background: #fff; }
 .archive-gate p { margin: 6px 0; }
