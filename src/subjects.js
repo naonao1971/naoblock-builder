@@ -141,7 +141,8 @@ export function nounSubject(n) {
 
 // ドット絵：40×40 いっぱいに縮める
 export function pictureSubject(given) {
-  const name = Object.hasOwn(PICTURES, given) ? given : Object.hasOwn(PICTURE_ALIASES, given) ? PICTURE_ALIASES[given] : null;
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);   // Object.hasOwn は iOS 15.3 以前にない
+  const name = has(PICTURES, given) ? given : has(PICTURE_ALIASES, given) ? PICTURE_ALIASES[given] : null;
   const pic = name && PICTURES[name];
   if (!pic) return null;
   return {

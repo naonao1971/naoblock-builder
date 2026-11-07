@@ -41,7 +41,8 @@ function wrap(ctx, str, maxW) {
   const lines = [];
   let line = '';
   const fits = (t) => ctx.measureText(t).width <= maxW;
-  for (const token of str.split(/(?<=、)/)) {
+  // 「、」のあとで区切る（後読み /(?<=、)/ は iOS 16.3 以前の Safari で読めず、アプリ全体が止まるので使わない）
+  for (const token of str.split('、').map((t, i, a) => (i < a.length - 1 ? t + '、' : t)).filter(Boolean)) {
     if (fits(line + token)) { line += token; continue; }
     if (line && fits(token)) { lines.push(line); line = token; continue; }
     for (const ch of token) {
