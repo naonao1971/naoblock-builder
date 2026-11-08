@@ -510,6 +510,15 @@ button:not(:disabled):active, .button:active,
 .archive-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 48px; margin: 16px 0 0; padding: 10px 14px; border: 0; border-radius: 12px; background: #06c755; color: #fff; font: inherit; font-size: 1rem; font-weight: 900; cursor: pointer; }
 .archive-btn[aria-pressed="true"] { background: #04a346; }
 .archive-btn small { font-size: 0.85rem; font-weight: 400; opacity: 0.95; }
+/* 完成画面の投稿サイトの案内（色は投稿サイトに合わせる） */
+.post-invite { margin: 20px 0 0; padding: 14px; border-radius: 12px; background: #fdeef3; text-align: center; }
+.post-invite p { margin: 0 0 6px; font-weight: bold; word-break: auto-phrase; }
+.post-invite .lead { font-weight: 400; margin-bottom: 10px; }
+.post-invite .note { margin: 10px 0 0; font-weight: 400; font-size: 0.85rem; }
+.post-invite .note a { color: #c2185b; font-weight: bold; }
+.post-invite-btns { display: flex; flex-direction: column; gap: 8px; }
+.post-invite-btn { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 14px; border-radius: 12px; background: #c2185b; color: #fff; font-weight: 900; text-decoration: none; }
+.post-invite-btn.ghost { background: #fff; color: #c2185b; border: 2px solid #c2185b; }
 /* 完成画面の公式 LINE の案内（?noun= などの直リンクから来た人向け） */
 .line-invite { margin: 20px 0 0; padding: 14px; border-radius: 12px; background: #eafaf0; text-align: center; }
 .line-invite p { margin: 0 0 10px; font-weight: bold; word-break: auto-phrase; }
